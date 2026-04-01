@@ -1,10 +1,9 @@
 using UnityEngine;
-using System; // bat buoc co de dung action (event)
+using System;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
 {
-    // cac su kien (events) de cac script khac lang nghe
     public event Action OnJump;
     public event Action OnLand;
     public event Action OnShoot;
@@ -24,7 +23,10 @@ public class PlayerController : MonoBehaviour
     [Header("references")]
     [SerializeField] private Transform groundCheck;
     [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private Transform shootPoint; // diem bat dau cua tia dan 
+    [SerializeField] private LayerMask enemyLayer; // mask de tia dan chi trung quai
 
+    [SerializeField] private float knockbackPower = 15f; // luc day lui quai khi ban
     private Rigidbody2D rb;
     private float horizontalInput;
     private bool isGrounded;
@@ -33,6 +35,9 @@ public class PlayerController : MonoBehaviour
     private float coyoteTimeCounter;
     private float jumpBufferCounter;
     private float faceDir = 1f;
+
+    // cho phep doc van toc tu ben ngoai (cho vfx)
+    public Vector2 Velocity => rb.linearVelocity;
 
     void Start()
     {
@@ -63,7 +68,6 @@ public class PlayerController : MonoBehaviour
         wasGrounded = isGrounded;
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, 0.2f, groundLayer);
 
-        // neu frame truoc tren khong ma frame nay cham dat -> phat tin hieu tiep dat
         if (!wasGrounded && isGrounded)
         {
             OnLand?.Invoke();
@@ -97,25 +101,40 @@ public class PlayerController : MonoBehaviour
 
     private void HandleActionInputs()
     {
-        // xu ly nhay
         if (jumpBufferCounter > 0f && coyoteTimeCounter > 0f)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
             jumpBufferCounter = 0f;
             coyoteTimeCounter = 0f;
-            OnJump?.Invoke(); // phat tin hieu nhay
+            OnJump?.Invoke();
         }
 
-        // xu ly ban
         if (Input.GetMouseButtonDown(0))
         {
-            OnShoot?.Invoke(); // phat tin hieu ban
+            OnShoot?.Invoke();
+
+            // ban tia raycast xuyen toi 15 don vi
+            if (shootPoint != null)
+            {
+                Vector2 shootDir = Vector2.right * faceDir;
+                RaycastHit2D hit = Physics2D.Raycast(shootPoint.position, shootDir, 15f, enemyLayer);
+
+                if (hit.collider != null)
+                {
+                    EnemyController enemy = hit.collider.GetComponent<EnemyController>();
+                    if (enemy != null)
+                    {
+                        // day lui quai 15 don vi luc 
+                        Vector2 knockback = shootDir * knockbackPower;
+                        enemy.TakeDamage(1f, knockback);
+                    }
+                }
+            }
         }
 
-        // xu ly nhan sat thuong
         if (Input.GetKeyDown(KeyCode.T))
         {
-            OnTakeDamage?.Invoke(); // phat tin hieu bi thuong
+            OnTakeDamage?.Invoke();
         }
     }
 

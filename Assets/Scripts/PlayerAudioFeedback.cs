@@ -36,7 +36,7 @@ public class PlayerAudioFeedback : MonoBehaviour
 
     void OnDisable()
     {
-        // huy dang ky de chong loi
+
         playerController.OnJump -= PlayJumpSound;
         playerController.OnLand -= PlayLandSound;
         playerController.OnShoot -= PlayShootSound;

@@ -3,7 +3,6 @@ using DG.Tweening;
 using System.Collections;
 using Unity.Cinemachine;
 
-// ep buoc phai co player controller di kem de doc su kien
 [RequireComponent(typeof(PlayerController))]
 public class PlayerFeedback : MonoBehaviour
 {
@@ -12,6 +11,14 @@ public class PlayerFeedback : MonoBehaviour
     [SerializeField] private CanvasGroup bloodOverlay; // ui mau
     [SerializeField] private CinemachineImpulseSource impulseSource; // camera shake
 
+
+    [Header("vfx (particle systems)")]
+    [SerializeField] private ParticleSystem jumpDust;
+    [SerializeField] private ParticleSystem landDust;
+    [SerializeField] private ParticleSystem muzzleFlash;
+    [SerializeField] private ParticleSystem shellFX;
+
+
     private PlayerController playerController;
 
     void Awake()
@@ -19,7 +26,6 @@ public class PlayerFeedback : MonoBehaviour
         playerController = GetComponent<PlayerController>();
     }
 
-    // bat buoc phai dang ky su kien trong onenable
     void OnEnable()
     {
         playerController.OnJump += ApplyJumpFeel;
@@ -28,7 +34,6 @@ public class PlayerFeedback : MonoBehaviour
         playerController.OnTakeDamage += ApplyDamageFeel;
     }
 
-    // bat buoc phai huy dang ky trong ondisable de tranh loi tran bo nho (memory leak)
     void OnDisable()
     {
         playerController.OnJump -= ApplyJumpFeel;
@@ -42,20 +47,30 @@ public class PlayerFeedback : MonoBehaviour
         if (bloodOverlay != null) bloodOverlay.alpha = 0f;
     }
 
+    void Update()
+    {
+
+    }
+
+
     private void ApplyJumpFeel()
     {
         transform.DOKill();
-        // keo thuon nguoi (stretch)
         transform.DOScale(new Vector3(0.6f, 1.4f, 1f), 0.15f)
             .OnComplete(() => transform.DOScale(Vector3.one, 0.1f));
+
+        // phat bui khi nhay
+        if (jumpDust != null) jumpDust.Play();
     }
 
     private void ApplyLandFeel()
     {
         transform.DOKill();
-        // lun nguoi xuong (squash)
         transform.DOScale(new Vector3(1.3f, 0.7f, 1f), 0.1f)
             .OnComplete(() => transform.DOScale(Vector3.one, 0.1f));
+
+        // phat bui khi cham dat
+        if (landDust != null) landDust.Play();
     }
 
     private void ApplyShootFeel()
@@ -68,10 +83,11 @@ public class PlayerFeedback : MonoBehaviour
                 .OnComplete(() => weaponPivot.DOLocalMoveX(0f, 0.2f));
         }
 
-        if (impulseSource != null)
-        {
-            impulseSource.GenerateImpulse(0.2f);
-        }
+        if (impulseSource != null) impulseSource.GenerateImpulse(0.2f);
+
+        // tia lua sung
+        if (muzzleFlash != null) muzzleFlash.Play();
+        if (shellFX != null) shellFX.Play();
     }
 
     private void ApplyDamageFeel()
@@ -85,10 +101,7 @@ public class PlayerFeedback : MonoBehaviour
             bloodOverlay.DOFade(0f, 0.8f).SetEase(Ease.OutQuad).SetUpdate(true);
         }
 
-        if (impulseSource != null)
-        {
-            impulseSource.GenerateImpulse(1.0f);
-        }
+        if (impulseSource != null) impulseSource.GenerateImpulse(1.0f);
     }
 
     private IEnumerator HitStopRoutine(float duration)
