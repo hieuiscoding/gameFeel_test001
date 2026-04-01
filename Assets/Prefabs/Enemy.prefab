@@ -200,7 +200,7 @@ MonoBehaviour:
   bloodVFX: {fileID: 3111543740662560961}
   deathVFX: {fileID: 3119711720231133736, guid: 194f21b2121b93141b7628dd75312981, type: 3}
   hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
-  flashDuration: 0.1
+  flashDuration: 0.2
   wobbleStrength: 15
 --- !u!1 &2481828280502995414
 GameObject:
