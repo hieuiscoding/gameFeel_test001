@@ -1,5 +1,5 @@
-using UnityEngine;
 using System;
+using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class EnemyController : MonoBehaviour
@@ -17,6 +17,11 @@ public class EnemyController : MonoBehaviour
 
     private float stunTimer;
     private bool isDead = false; // dung bien nay de check xem thanh cai xac chua
+
+    // remember last horizontal direction to avoid getting stuck when player.x ~= enemy.x
+    private float lastMoveDirection = 1f;
+    // threshold to consider player horizontally aligned
+    private const float horizontalEpsilon = 0.05f;
 
     void Start()
     {
@@ -38,9 +43,21 @@ public class EnemyController : MonoBehaviour
             return;
         }
 
-        float dir = Mathf.Sign(player.position.x - transform.position.x);
+        float dx = player.position.x - transform.position.x;
+        float dir;
+        if (Mathf.Abs(dx) > horizontalEpsilon)
+        {
+            dir = Mathf.Sign(dx);
+            lastMoveDirection = dir;
+        }
+        else
+        {
+            // player roughly aligned on X — keep moving in last known direction rather than stopping
+            dir = lastMoveDirection;
+        }
+
         rb.linearVelocity = new Vector2(dir * moveSpeed, rb.linearVelocity.y);
-        transform.localScale = new Vector3(dir, 1, 1);
+        transform.localScale = new Vector3(Mathf.Sign(dir), 1, 1);
     }
 
     public void TakeDamage(float damage, Vector2 knockbackForce)
@@ -70,16 +87,15 @@ public class EnemyController : MonoBehaviour
 
     private void Die()
     {
-        isDead = true; // danh dau la da chet
+        isDead = true;
         OnDie?.Invoke();
 
-        // nga lan quay ra dat (xoay 90 do ra dang sau)
+        // nga lan quay ra dat 
         transform.rotation = Quaternion.Euler(0, 0, -90f * Mathf.Sign(transform.localScale.x));
 
-        // doi layer sang default de nguoi choi co the di xuyen qua xac (khong bi ket)
-        gameObject.layer = LayerMask.NameToLayer("Default");
+        // doi layer sang Corpse de khong va cham voi Player va Enemy khac
+        gameObject.layer = LayerMask.NameToLayer("Corpse");
 
-        // cho phep nguoi choi hanh ha cai xac trong 5 giay roi moi xoa
         Destroy(gameObject, 5f);
     }
 }

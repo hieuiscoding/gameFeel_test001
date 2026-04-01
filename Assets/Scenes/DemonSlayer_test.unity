@@ -1215,7 +1215,7 @@ Transform:
   m_GameObject: {fileID: 519420028}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -8.877142, y: 3.2627401, z: -10}
+  m_LocalPosition: {x: -8.842579, y: 3.2627401, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2270,7 +2270,7 @@ Transform:
   m_GameObject: {fileID: 834458019}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -8.877142, y: 3.2627401, z: -10}
+  m_LocalPosition: {x: -8.842579, y: 3.2627401, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13799,8 +13799,9 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 64
-  knockbackPower: 8
-  parallelSpread: 0.2
+  weapons:
+  - {fileID: 11400000, guid: f6d0b9e4dbd09744a90cc3dc88c2a0a3, type: 2}
+  - {fileID: 11400000, guid: a80bdde320cf4e848acce278a2f2b74a, type: 2}
 --- !u!114 &1548898016
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19228,10 +19229,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'WASD: move | LMB: Shoot | SPACE: Jump | T: hit test |
-
-    A/D: Shooting
-    direction'
+  m_text: "WASD: move | LMB: Shoot | SPACE: Jump | T: hit test |\nA/D: Shooting direction
+    \n1/2: pistol/rifle\n\n"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -25079,7 +25078,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 8300000, guid: 954e042a3fc84204fbd331a64fd9b90f, type: 3}
+  m_Resource: {fileID: 8300000, guid: 97b4c2946b4bdc54f968d92f1162d4bf, type: 3}
   m_PlayOnAwake: 1
   m_Volume: 0.2
   m_Pitch: 0.9
@@ -25175,6 +25174,53 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 3.01916, y: 5.87435, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2073864449
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2073864451}
+  - component: {fileID: 2073864450}
+  m_Layer: 0
+  m_Name: AudioManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2073864450
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2073864449}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e0af621d1fa397541b45bd81bbe26a58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  maxSimultaneousSources: 16
+  persistAcrossScenes: 1
+  defaultMinIntervalPerClip: 0.08
+--- !u!4 &2073864451
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2073864449}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -25572,3 +25618,4 @@ SceneRoots:
   - {fileID: 2095266059}
   - {fileID: 1628580033}
   - {fileID: 2063178738}
+  - {fileID: 2073864451}

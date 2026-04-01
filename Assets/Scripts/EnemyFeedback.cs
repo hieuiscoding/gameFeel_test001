@@ -9,6 +9,8 @@ public class EnemyFeedback : MonoBehaviour
     [SerializeField] private SpriteRenderer spriteRenderer;
     [SerializeField] private ParticleSystem bloodVFX;
     [SerializeField] private ParticleSystem deathVFX; // them hieu ung no xac
+    [SerializeField] private AudioClip deathSound; // sound khi quai chet
+    [SerializeField] [Range(0f, 1f)] private float deathSoundVolume = 1f; // 2D volume (AudioManager enforces 2D)
 
     [Header("hit feel settings")]
     [SerializeField] private Color hitFlashColor = Color.white; // chop trang nhin se "luc" hon
@@ -68,6 +70,29 @@ public class EnemyFeedback : MonoBehaviour
 
     private void ApplyDieFeel()
     {
+        // Use AudioManager for 2D, pooled, varied SFX playback
+        if (deathSound != null && AudioManager.Instance != null)
+        {
+            var opts = new AudioManager.SFXPlayOptions
+            {
+                is2D = true, // enforce non-spatialized 2D playback as requested
+                volume = deathSoundVolume,
+                volumeVariance = 0.06f,
+                pitch = 1f,
+                pitchVariance = 0.05f,
+                maxDelaySeconds = 0f, // small random delay to avoid perfectly aligned playback
+                minIntervalPerClip = 0.15f, // prevent rapid-fire repetition of same death sound
+                allowStealWhenBusy = true
+            };
+
+            AudioManager.Instance.PlaySFX(deathSound, opts);
+        }
+        else if (deathSound != null)
+        {
+            // fallback
+            AudioSource.PlayClipAtPoint(deathSound, transform.position, deathSoundVolume);
+        }
+
         // 1. tao ra ban sao cua prefab vfx tai vi tri quai chet
         if (deathVFX != null)
         {
