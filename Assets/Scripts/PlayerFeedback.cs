@@ -2,6 +2,7 @@ using UnityEngine;
 using DG.Tweening;
 using System.Collections;
 using Unity.Cinemachine;
+using UnityEngine.Rendering.Universal; // thu vien cho light2d
 
 [RequireComponent(typeof(PlayerController))]
 public class PlayerFeedback : MonoBehaviour
@@ -11,13 +12,18 @@ public class PlayerFeedback : MonoBehaviour
     [SerializeField] private CanvasGroup bloodOverlay; // ui mau
     [SerializeField] private CinemachineImpulseSource impulseSource; // camera shake
 
-
     [Header("vfx (particle systems)")]
     [SerializeField] private ParticleSystem jumpDust;
     [SerializeField] private ParticleSystem landDust;
     [SerializeField] private ParticleSystem muzzleFlash;
     [SerializeField] private ParticleSystem shellFX;
 
+    [Header("bullet tracer")]
+    [SerializeField] private LineRenderer bulletTracer;
+
+    [Header("light vfx")]
+    [SerializeField] private Light2D muzzleLight;
+    [SerializeField] private float flashIntensity = 3f;
 
     private PlayerController playerController;
 
@@ -52,7 +58,6 @@ public class PlayerFeedback : MonoBehaviour
 
     }
 
-
     private void ApplyJumpFeel()
     {
         transform.DOKill();
@@ -85,9 +90,36 @@ public class PlayerFeedback : MonoBehaviour
 
         if (impulseSource != null) impulseSource.GenerateImpulse(0.2f);
 
-        // tia lua sung
+        // tia lua sung va vo dan
         if (muzzleFlash != null) muzzleFlash.Play();
         if (shellFX != null) shellFX.Play();
+
+        // chớp den light 2d
+        if (muzzleLight != null)
+        {
+            muzzleLight.DOKill();
+            muzzleLight.intensity = flashIntensity;
+            DOTween.To(() => muzzleLight.intensity, x => muzzleLight.intensity = x, 0f, 0.1f);
+        }
+
+        // 3. ve vet dan
+        if (bulletTracer != null)
+        {
+            bulletTracer.gameObject.SetActive(true);
+
+            bulletTracer.SetPosition(0, playerController.LastShootStart);
+            bulletTracer.SetPosition(1, playerController.LastShootEnd);
+
+            // reset mau ve trang tinh truoc khi fade
+            Color fullWhite = new Color(1, 1, 1, 1);
+            Color clearWhite = new Color(1, 1, 1, 0);
+            bulletTracer.startColor = fullWhite;
+            bulletTracer.endColor = clearWhite;
+
+            // dung DOVirtual de fade mau cua linerenderer tu 1 ve 0
+            DOTween.To(() => bulletTracer.startColor, x => bulletTracer.startColor = x, new Color(1, 1, 1, 0), 0.05f)
+                .OnComplete(() => bulletTracer.gameObject.SetActive(false));
+        }
     }
 
     private void ApplyDamageFeel()

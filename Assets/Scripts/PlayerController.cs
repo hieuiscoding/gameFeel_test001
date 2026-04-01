@@ -26,7 +26,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private Transform shootPoint; // diem bat dau cua tia dan 
     [SerializeField] private LayerMask enemyLayer; // mask de tia dan chi trung quai
 
+    [Header("gun accuracy")]
     [SerializeField] private float knockbackPower = 15f; // luc day lui quai khi ban
+    [SerializeField] private float parallelSpread = 0.2f; // do lech len/xuong cua nong sung
+
     private Rigidbody2D rb;
     private float horizontalInput;
     private bool isGrounded;
@@ -38,6 +41,10 @@ public class PlayerController : MonoBehaviour
 
     // cho phep doc van toc tu ben ngoai (cho vfx)
     public Vector2 Velocity => rb.linearVelocity;
+
+    // luu lai diem dau, diem cuoi cho script feedback doc de ve vet dan
+    public Vector3 LastShootStart { get; private set; }
+    public Vector3 LastShootEnd { get; private set; }
 
     void Start()
     {
@@ -111,25 +118,37 @@ public class PlayerController : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            OnShoot?.Invoke();
-
             // ban tia raycast xuyen toi 15 don vi
             if (shootPoint != null)
             {
                 Vector2 shootDir = Vector2.right * faceDir;
-                RaycastHit2D hit = Physics2D.Raycast(shootPoint.position, shootDir, 15f, enemyLayer);
+
+                // tao do lech len/xuong ngau nhien cho nong sung
+                Vector3 randomOffset = transform.up * UnityEngine.Random.Range(-parallelSpread, parallelSpread);
+                LastShootStart = shootPoint.position + randomOffset;
+
+                RaycastHit2D hit = Physics2D.Raycast(LastShootStart, shootDir, 15f, enemyLayer);
 
                 if (hit.collider != null)
                 {
+                    LastShootEnd = hit.point; // luu toa do dung tren nguoi quai
+
                     EnemyController enemy = hit.collider.GetComponent<EnemyController>();
                     if (enemy != null)
                     {
-                        // day lui quai 15 don vi luc 
+                        // day lui quai 
                         Vector2 knockback = shootDir * knockbackPower;
                         enemy.TakeDamage(1f, knockback);
                     }
                 }
+                else
+                {
+                    LastShootEnd = LastShootStart + (Vector3)(shootDir * 15f); // bay het tam
+                }
             }
+
+            // goi onshoot sau khi da tinh toan xong diem dau / diem cuoi de ben feedback chay
+            OnShoot?.Invoke();
         }
 
         if (Input.GetKeyDown(KeyCode.T))
