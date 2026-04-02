@@ -170,10 +170,13 @@ public class EnemyFeedback : MonoBehaviour
             enemyBody.DOScale(new Vector3(1.5f, 0.1f, 1f), 0.2f).SetEase(Ease.OutQuad);
         }
 
-        // 3. mo dan roi bien mat
+        // 3. mo dan roi bien mat TRUOC KHI bi thu hoi vao pool
         if (spriteRenderer != null)
         {
-            spriteRenderer.DOFade(0f, 0.2f);
+            spriteRenderer.DOKill(); // dam bao kill cac tween truoc do
+
+            // Cho 4.5 giay roi moi bat dau fade mo di trong 0.5 giay
+            spriteRenderer.DOFade(0f, 0.5f).SetDelay(4.5f);
         }
     }
 }

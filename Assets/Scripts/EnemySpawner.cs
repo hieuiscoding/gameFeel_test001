@@ -3,7 +3,7 @@ using UnityEngine;
 public class EnemySpawner : MonoBehaviour
 {
     [Header("settings")]
-    [SerializeField] private GameObject enemyPrefab;
+    // da xoa bien enemyPrefab vi gio EnemyPool se quan ly viec do
     [SerializeField] private float spawnInterval = 3f;
     [SerializeField] private Transform[] spawnPoints;
 
@@ -21,11 +21,19 @@ public class EnemySpawner : MonoBehaviour
 
     private void SpawnEnemy()
     {
-        if (spawnPoints.Length == 0 || enemyPrefab == null) return;
+        if (spawnPoints.Length == 0) return;
 
         int randomIndex = Random.Range(0, spawnPoints.Length);
         Transform pt = spawnPoints[randomIndex];
 
-        Instantiate(enemyPrefab, pt.position, Quaternion.identity);
+        // goi pool lay quai ra thay vi dung instantiate
+        if (EnemyPool.Instance != null)
+        {
+            EnemyPool.Instance.SpawnEnemy(pt.position);
+        }
+        else
+        {
+            Debug.LogWarning("khong tim thay enemypool trong scene");
+        }
     }
 }

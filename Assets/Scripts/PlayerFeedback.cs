@@ -13,6 +13,9 @@ public class PlayerFeedback : MonoBehaviour
     [SerializeField] private CanvasGroup bloodOverlay;
     [SerializeField] private CinemachineImpulseSource impulseSource;
 
+    [Header("screen flash")]
+    [SerializeField] private CanvasGroup whiteFlashOverlay;
+
     [Header("vfx (particle systems)")]
     [SerializeField] private ParticleSystem jumpDust;
     [SerializeField] private ParticleSystem landDust;
@@ -25,7 +28,10 @@ public class PlayerFeedback : MonoBehaviour
     [Header("light vfx")]
     [SerializeField] private Light2D muzzleLight;
     [SerializeField] private float flashIntensity = 3f;
-
+    
+    [Header("global light vfx")]
+    [SerializeField] private UnityEngine.Rendering.Universal.Light2D globalFlashLight;
+    [SerializeField] private float globalFlashIntensity = 1.2f; // do sang toan ban do
     private PlayerController playerController;
 
     void Awake()
@@ -42,6 +48,7 @@ public class PlayerFeedback : MonoBehaviour
         playerController.OnDrawTracer += ApplyTracerFeel; // ve vệt dan
         playerController.OnWeaponSwitched += ApplyWeaponSwitch; // doi sung
         playerController.OnThrowGrenade += ApplyThrowFeel;
+
     }
 
     void OnDisable()
@@ -107,11 +114,30 @@ public class PlayerFeedback : MonoBehaviour
         if (muzzleFlash != null) muzzleFlash.Play();
         if (shellFX != null) shellFX.Play();
 
+        // 1. SỬA CẢ MUZZLE LIGHT CHO CHẮC CỐP
         if (muzzleLight != null)
         {
             muzzleLight.DOKill();
             muzzleLight.intensity = flashIntensity;
-            DOTween.To(() => muzzleLight.intensity, x => muzzleLight.intensity = x, 0f, 0.1f);
+
+            DOTween.To(() => muzzleLight.intensity, x => muzzleLight.intensity = x, 0f, 0.1f)
+                .SetTarget(muzzleLight); // <--- Đóng mác chủ nhân vào đây
+        }
+
+        // 2. SỬA GLOBAL FLASH LIGHT
+        if (globalFlashLight != null)
+        {
+            globalFlashLight.DOKill();
+            globalFlashLight.intensity = globalFlashIntensity;
+
+            DOTween.To(() => globalFlashLight.intensity, x => globalFlashLight.intensity = x, 0f, 0.15f)
+                .SetTarget(globalFlashLight); // <--- Đóng mác chủ nhân vào đây
+        }
+        if (whiteFlashOverlay != null)
+        {
+            whiteFlashOverlay.DOKill();
+            whiteFlashOverlay.alpha = 0.4f; // chop trang 40%
+            whiteFlashOverlay.DOFade(0f, 0.1f); // bien mat cuc nhanh
         }
     }
 

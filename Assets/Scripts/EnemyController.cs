@@ -37,11 +37,16 @@ public class EnemyController : MonoBehaviour
     private float dashDirection;
     private int originalLayer;
 
+    // them ham awake de lay component ngay lap tuc
+    void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        originalLayer = gameObject.layer; // luu lai layer goc
+    }
+
     void Start()
     {
         currentHealth = maxHealth;
-        rb = GetComponent<Rigidbody2D>();
-        originalLayer = gameObject.layer; // luu lai layer goc (layer Enemy)
 
         GameObject p = GameObject.FindGameObjectWithTag("Player");
         if (p != null) player = p.transform;
@@ -151,7 +156,6 @@ public class EnemyController : MonoBehaviour
         }
     }
 
-    // ham nay duoc goi tu EnemyPool khi lay quai ra khoi kho
     public void ResetEnemy()
     {
         isDead = false;
@@ -159,8 +163,8 @@ public class EnemyController : MonoBehaviour
         currentState = EnemyState.chase;
         stunTimer = 0f;
 
-        // reset vat ly va goc xoay
         rb.linearVelocity = Vector2.zero;
+        rb.linearDamping = 0f; // SỬA linearDrag THÀNH drag
         transform.rotation = Quaternion.identity;
         gameObject.layer = originalLayer;
     }
@@ -170,10 +174,14 @@ public class EnemyController : MonoBehaviour
         isDead = true;
         OnDie?.Invoke();
 
-        transform.rotation = Quaternion.Euler(0, 0, -90f * Mathf.Sign(transform.localScale.x));
+        // 1. XOA (HOAC COMMENT) dong xoay nay de chong lai DOTween khien box bi dung dung
+        // transform.rotation = Quaternion.Euler(0, 0, -90f * Mathf.Sign(transform.localScale.x));
+
         gameObject.layer = LayerMask.NameToLayer("Corpse");
 
-        // xoa dong Destroy(gameObject, 5f) va thay bang lenh goi tra ve pool
+        // 2. THEM DONG NAY: Tang ma sat (Drag) len that cao de cai xac bi thang gap lai tren mat dat
+        rb.linearDamping = 15f;
+
         Invoke(nameof(Despawn), 5f);
     }
 
