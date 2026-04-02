@@ -13800,8 +13800,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   weapons:
-  - {fileID: 11400000, guid: f6d0b9e4dbd09744a90cc3dc88c2a0a3, type: 2}
   - {fileID: 11400000, guid: a80bdde320cf4e848acce278a2f2b74a, type: 2}
+  - {fileID: 11400000, guid: f6d0b9e4dbd09744a90cc3dc88c2a0a3, type: 2}
 --- !u!114 &1548898016
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -25066,7 +25066,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!82 &2063178737
 AudioSource:
   m_ObjectHideFlags: 0
