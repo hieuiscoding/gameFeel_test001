@@ -6,8 +6,10 @@ public class PlayerController : MonoBehaviour
 {
     public event Action OnJump;
     public event Action OnLand;
-    public event Action OnShoot;
+    public event Action OnShoot; // phat am thanh, flash
     public event Action OnTakeDamage;
+    public event Action<Vector3, Vector3> OnDrawTracer; // ve tung tia dan rieng le
+    public event Action<Sprite> OnWeaponSwitched; // doi hinh anh sung
 
     [Header("movement settings")]
     [SerializeField] private float moveSpeed = 8f;
@@ -27,10 +29,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private LayerMask enemyLayer;
 
     [Header("weapons")]
-    [SerializeField] private WeaponData[] weapons; // danh sach sung dang mang
+    [SerializeField] private WeaponData[] weapons;
 
-    private int currentWeaponIndex = 0; // vi tri sung dang cam
-    private float nextFireTime = 0f; // thoi diem vien dan tiep theo duoc phep ban
+    private int currentWeaponIndex = 0;
+    private float nextFireTime = 0f;
 
     private Rigidbody2D rb;
     private float horizontalInput;
@@ -42,12 +44,16 @@ public class PlayerController : MonoBehaviour
     private float faceDir = 1f;
 
     public Vector2 Velocity => rb.linearVelocity;
-    public Vector3 LastShootStart { get; private set; }
-    public Vector3 LastShootEnd { get; private set; }
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+
+        // set vu khi mac dinh luc moi vao game
+        if (weapons != null && weapons.Length > 0 && weapons[0] != null)
+        {
+            OnWeaponSwitched?.Invoke(weapons[0].weaponSprite);
+        }
     }
 
     void Update()
@@ -106,7 +112,6 @@ public class PlayerController : MonoBehaviour
 
     private void HandleActionInputs()
     {
-        // nhay
         if (jumpBufferCounter > 0f && coyoteTimeCounter > 0f)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
@@ -128,13 +133,13 @@ public class PlayerController : MonoBehaviour
     {
         if (weapons == null || weapons.Length == 0) return;
 
-        // quet cac phim tu 1 den 9 de doi sung
         for (int i = 0; i < weapons.Length; i++)
         {
-            if (Input.GetKeyDown(KeyCode.Alpha1 + i))
+            // neu bam so va sung do co ton tai
+            if (Input.GetKeyDown(KeyCode.Alpha1 + i) && currentWeaponIndex != i && weapons[i] != null)
             {
                 currentWeaponIndex = i;
-                // co the them event OnWeaponSwitch o day de phat am thanh len dan
+                OnWeaponSwitched?.Invoke(weapons[i].weaponSprite);
             }
         }
     }
@@ -144,14 +149,10 @@ public class PlayerController : MonoBehaviour
         if (weapons == null || weapons.Length == 0 || shootPoint == null) return;
 
         WeaponData currentWeapon = weapons[currentWeaponIndex];
-
-        // neu súng auto thi dung GetMouseButton (giu de ban), neu khong thi GetMouseButtonDown (click tung vien)
         bool isTryingToShoot = currentWeapon.isAutomatic ? Input.GetMouseButton(0) : Input.GetMouseButtonDown(0);
 
-        // kiem tra xem da het thoi gian cooldown cua sung chua
         if (isTryingToShoot && Time.time >= nextFireTime)
         {
-            // set cooldown cho vien tiep theo
             nextFireTime = Time.time + currentWeapon.fireRate;
             ExecuteShoot(currentWeapon);
         }
@@ -159,29 +160,56 @@ public class PlayerController : MonoBehaviour
 
     private void ExecuteShoot(WeaponData weapon)
     {
-        Vector2 shootDir = Vector2.right * faceDir;
+        Vector3 baseDir = Vector3.right * faceDir;
 
-        // lay chi so tản mát từ data súng
-        Vector3 randomOffset = transform.up * UnityEngine.Random.Range(-weapon.parallelSpread, weapon.parallelSpread);
-        LastShootStart = shootPoint.position + randomOffset;
-
-        RaycastHit2D hit = Physics2D.Raycast(LastShootStart, shootDir, 15f, enemyLayer);
-
-        if (hit.collider != null)
+        // giat lui nguoi choi (kickback) cho cac loai sung hang nang
+        if (weapon.playerKickback > 0f)
         {
-            LastShootEnd = hit.point;
+            // ham nhe toc do chay (truc x) de an luc giat, nhung BAT BUOC GIU NGUYEN toc do roi
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x * 0.3f, rb.linearVelocity.y);
 
-            EnemyController enemy = hit.collider.GetComponent<EnemyController>();
-            if (enemy != null)
-            {
-                // lay chi so sat thuong va day lui tu data súng
-                Vector2 knockback = shootDir * weapon.knockbackPower;
-                enemy.TakeDamage(weapon.damage, knockback);
-            }
+            // chi day lui thuan tuy theo chieu ngang
+            rb.AddForce(new Vector2(-faceDir, 0f) * weapon.playerKickback, ForceMode2D.Impulse);
         }
-        else
+
+
+        for (int i = 0; i < weapon.pelletsCount; i++)
         {
-            LastShootEnd = LastShootStart + (Vector3)(shootDir * 15f);
+            // tinh goc xoe ngau nhien
+            float angleOffset = 0f;
+            if (weapon.pelletsCount > 1)
+            {
+                angleOffset = UnityEngine.Random.Range(-weapon.spreadAngle, weapon.spreadAngle);
+            }
+
+            // xoay huong ban
+            Vector3 shootDir = Quaternion.Euler(0, 0, angleOffset) * baseDir;
+
+            // lech nong sung song song 
+            Vector3 randomOffset = transform.up * UnityEngine.Random.Range(-weapon.parallelSpread, weapon.parallelSpread);
+            Vector3 startPos = shootPoint.position + randomOffset;
+            Vector3 endPos;
+
+            RaycastHit2D hit = Physics2D.Raycast(startPos, shootDir, 15f, enemyLayer);
+
+            if (hit.collider != null)
+            {
+                endPos = hit.point;
+
+                EnemyController enemy = hit.collider.GetComponent<EnemyController>();
+                if (enemy != null)
+                {
+                    Vector2 knockback = shootDir * weapon.knockbackPower;
+                    enemy.TakeDamage(weapon.damage, knockback);
+                }
+            }
+            else
+            {
+                endPos = startPos + (shootDir * 15f);
+            }
+
+            // goi ve tia dan hien tai
+            OnDrawTracer?.Invoke(startPos, endPos);
         }
 
         OnShoot?.Invoke();

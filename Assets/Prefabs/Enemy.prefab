@@ -181,8 +181,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83e83e066e45a2b40811dd3e1cf387cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
+  currentState: 0
   maxHealth: 4
   moveSpeed: 2
+  dashRange: 4
+  dashSpeed: 12
+  anticipateTime: 0.3
+  dashDuration: 0.25
+  cooldownTime: 1
 --- !u!114 &7515321958158847131
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204,6 +210,7 @@ MonoBehaviour:
   hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
   flashDuration: 0.2
   wobbleStrength: 15
+  warningColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
 --- !u!1 &2481828280502995414
 GameObject:
   m_ObjectHideFlags: 0

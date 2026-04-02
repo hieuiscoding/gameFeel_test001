@@ -13,8 +13,12 @@ MonoBehaviour:
   m_Name: Pistol
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   weaponName: Pistol
-  isAutomatic: 0
-  fireRate: 0.1
+  weaponSprite: {fileID: 21300000, guid: 942417ef599ef0b45bb2549d2bfcf216, type: 3}
+  isAutomatic: 1
+  fireRate: 0.15
+  pelletsCount: 1
+  spreadAngle: 0
   damage: 1
   knockbackPower: 15
   parallelSpread: 0.1
+  playerKickback: 0

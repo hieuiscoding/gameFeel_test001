@@ -2,15 +2,16 @@ using UnityEngine;
 using DG.Tweening;
 using System.Collections;
 using Unity.Cinemachine;
-using UnityEngine.Rendering.Universal; // thu vien cho light2d
+using UnityEngine.Rendering.Universal;
 
 [RequireComponent(typeof(PlayerController))]
 public class PlayerFeedback : MonoBehaviour
 {
     [Header("references")]
-    [SerializeField] private Transform weaponPivot; // sung
-    [SerializeField] private CanvasGroup bloodOverlay; // ui mau
-    [SerializeField] private CinemachineImpulseSource impulseSource; // camera shake
+    [SerializeField] private Transform weaponPivot;
+    [SerializeField] private SpriteRenderer weaponSpriteRenderer; // them o de luu hinh anh sung
+    [SerializeField] private CanvasGroup bloodOverlay;
+    [SerializeField] private CinemachineImpulseSource impulseSource;
 
     [Header("vfx (particle systems)")]
     [SerializeField] private ParticleSystem jumpDust;
@@ -19,7 +20,7 @@ public class PlayerFeedback : MonoBehaviour
     [SerializeField] private ParticleSystem shellFX;
 
     [Header("bullet tracer")]
-    [SerializeField] private LineRenderer bulletTracer;
+    [SerializeField] private LineRenderer bulletTracerPrefab; 
 
     [Header("light vfx")]
     [SerializeField] private Light2D muzzleLight;
@@ -38,6 +39,8 @@ public class PlayerFeedback : MonoBehaviour
         playerController.OnLand += ApplyLandFeel;
         playerController.OnShoot += ApplyShootFeel;
         playerController.OnTakeDamage += ApplyDamageFeel;
+        playerController.OnDrawTracer += ApplyTracerFeel; // ve vệt dan
+        playerController.OnWeaponSwitched += ApplyWeaponSwitch; // doi sung
     }
 
     void OnDisable()
@@ -46,6 +49,8 @@ public class PlayerFeedback : MonoBehaviour
         playerController.OnLand -= ApplyLandFeel;
         playerController.OnShoot -= ApplyShootFeel;
         playerController.OnTakeDamage -= ApplyDamageFeel;
+        playerController.OnDrawTracer -= ApplyTracerFeel;
+        playerController.OnWeaponSwitched -= ApplyWeaponSwitch;
     }
 
     void Start()
@@ -53,28 +58,31 @@ public class PlayerFeedback : MonoBehaviour
         if (bloodOverlay != null) bloodOverlay.alpha = 0f;
     }
 
-    void Update()
+    private void ApplyWeaponSwitch(Sprite newSprite)
     {
+        if (weaponSpriteRenderer != null && newSprite != null)
+        {
+            // kill tween dang chay de tranh loi hinh anh
+            weaponSpriteRenderer.transform.DOKill();
 
+            weaponSpriteRenderer.sprite = newSprite;
+
+            // hieu ung nhe nhe khi rut sung ra
+            weaponSpriteRenderer.transform.DOPunchScale(new Vector3(0.2f, -0.2f, 0), 0.15f, 10, 1);
+        }
     }
 
     private void ApplyJumpFeel()
     {
         transform.DOKill();
-        transform.DOScale(new Vector3(0.6f, 1.4f, 1f), 0.15f)
-            .OnComplete(() => transform.DOScale(Vector3.one, 0.1f));
-
-        // phat bui khi nhay
+        transform.DOScale(new Vector3(0.6f, 1.4f, 1f), 0.15f).OnComplete(() => transform.DOScale(Vector3.one, 0.1f));
         if (jumpDust != null) jumpDust.Play();
     }
 
     private void ApplyLandFeel()
     {
         transform.DOKill();
-        transform.DOScale(new Vector3(1.3f, 0.7f, 1f), 0.1f)
-            .OnComplete(() => transform.DOScale(Vector3.one, 0.1f));
-
-        // phat bui khi cham dat
+        transform.DOScale(new Vector3(1.3f, 0.7f, 1f), 0.1f).OnComplete(() => transform.DOScale(Vector3.one, 0.1f));
         if (landDust != null) landDust.Play();
     }
 
@@ -89,37 +97,38 @@ public class PlayerFeedback : MonoBehaviour
         }
 
         if (impulseSource != null) impulseSource.GenerateImpulse(0.2f);
-
-        // tia lua sung va vo dan
         if (muzzleFlash != null) muzzleFlash.Play();
         if (shellFX != null) shellFX.Play();
 
-        // chớp den light 2d
         if (muzzleLight != null)
         {
             muzzleLight.DOKill();
             muzzleLight.intensity = flashIntensity;
             DOTween.To(() => muzzleLight.intensity, x => muzzleLight.intensity = x, 0f, 0.1f);
         }
+    }
 
-        // 3. ve vet dan
-        if (bulletTracer != null)
-        {
-            bulletTracer.gameObject.SetActive(true);
+    private void ApplyTracerFeel(Vector3 start, Vector3 end)
+    {
+        if (bulletTracerPrefab == null) return;
+        LineRenderer tracer = Instantiate(bulletTracerPrefab, start, Quaternion.identity);
 
-            bulletTracer.SetPosition(0, playerController.LastShootStart);
-            bulletTracer.SetPosition(1, playerController.LastShootEnd);
+        tracer.startColor = Color.white;
+        tracer.endColor = new Color(1, 1, 1, 0);
+        tracer.startWidth = 0.08f;
 
-            // reset mau ve trang tinh truoc khi fade
-            Color fullWhite = new Color(1, 1, 1, 1);
-            Color clearWhite = new Color(1, 1, 1, 0);
-            bulletTracer.startColor = fullWhite;
-            bulletTracer.endColor = clearWhite;
+        // Ban đầu thu gọn vệt đạn lại đúng 1 điểm ở nòng súng
+        tracer.SetPosition(0, start);
+        tracer.SetPosition(1, start);
 
-            // dung DOVirtual de fade mau cua linerenderer tu 1 ve 0
-            DOTween.To(() => bulletTracer.startColor, x => bulletTracer.startColor = x, new Color(1, 1, 1, 0), 0.05f)
-                .OnComplete(() => bulletTracer.gameObject.SetActive(false));
-        }
+        DOVirtual.Vector3(start, end, 0.02f, v => tracer.SetPosition(1, v))
+            .SetUpdate(true) 
+            .OnComplete(() => {
+              
+                DOVirtual.Vector3(start, end, 0.03f, v => tracer.SetPosition(0, v))
+                    .SetUpdate(true)
+                    .OnComplete(() => Destroy(tracer.gameObject));
+            });
     }
 
     private void ApplyDamageFeel()
@@ -138,19 +147,10 @@ public class PlayerFeedback : MonoBehaviour
 
     private IEnumerator HitStopRoutine(float duration)
     {
-        // 1. luu lai am luong goc
         float originalVolume = AudioListener.volume;
-
-        // 2. tao cam giac "u tai" (giam manh am luong global) 
         AudioListener.volume = 0.15f;
-
-        // 3. de timescale = 0.02 thay vi 0 de game co do nhoai nhe, khong bi chet cung
         Time.timeScale = 0.02f;
-
-        // cho het thoi gian hitstop (phai dung waitforsecondsrealtime vi timescale dang gan 0)
         yield return new WaitForSecondsRealtime(duration);
-
-        // 4. tra moi thu ve trang thai binh thuong
         Time.timeScale = 1f;
         AudioListener.volume = originalVolume;
     }

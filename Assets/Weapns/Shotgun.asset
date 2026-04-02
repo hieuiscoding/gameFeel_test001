@@ -10,15 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 37bbdeb4393ab844c8a7eb46b3775117, type: 3}
-  m_Name: AssaultRifle
+  m_Name: Shotgun
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
-  weaponName: AssaultRifle
-  weaponSprite: {fileID: 21300000, guid: df6a04cdc2572db4699004a77afa0d96, type: 3}
-  isAutomatic: 1
-  fireRate: 0.1
-  pelletsCount: 1
-  spreadAngle: 0
-  damage: 0.5
-  knockbackPower: 7
-  parallelSpread: 0.2
-  playerKickback: 0
+  weaponName: Shotgun
+  weaponSprite: {fileID: 2856697167197768553, guid: 6a2351eaa1d6f874e8f1b633f6b965d4, type: 3}
+  isAutomatic: 0
+  fireRate: 0.2
+  pelletsCount: 6
+  spreadAngle: 15
+  damage: 1
+  knockbackPower: 15
+  parallelSpread: 6
+  playerKickback: 10
