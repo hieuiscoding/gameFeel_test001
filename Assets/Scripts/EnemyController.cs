@@ -35,11 +35,13 @@ public class EnemyController : MonoBehaviour
     // cac bien cho state machine
     private float stateTimer;
     private float dashDirection;
+    private int originalLayer;
 
     void Start()
     {
         currentHealth = maxHealth;
         rb = GetComponent<Rigidbody2D>();
+        originalLayer = gameObject.layer; // luu lai layer goc (layer Enemy)
 
         GameObject p = GameObject.FindGameObjectWithTag("Player");
         if (p != null) player = p.transform;
@@ -149,6 +151,20 @@ public class EnemyController : MonoBehaviour
         }
     }
 
+    // ham nay duoc goi tu EnemyPool khi lay quai ra khoi kho
+    public void ResetEnemy()
+    {
+        isDead = false;
+        currentHealth = maxHealth;
+        currentState = EnemyState.chase;
+        stunTimer = 0f;
+
+        // reset vat ly va goc xoay
+        rb.linearVelocity = Vector2.zero;
+        transform.rotation = Quaternion.identity;
+        gameObject.layer = originalLayer;
+    }
+
     private void Die()
     {
         isDead = true;
@@ -156,6 +172,21 @@ public class EnemyController : MonoBehaviour
 
         transform.rotation = Quaternion.Euler(0, 0, -90f * Mathf.Sign(transform.localScale.x));
         gameObject.layer = LayerMask.NameToLayer("Corpse");
-        Destroy(gameObject, 5f);
+
+        // xoa dong Destroy(gameObject, 5f) va thay bang lenh goi tra ve pool
+        Invoke(nameof(Despawn), 5f);
+    }
+
+    private void Despawn()
+    {
+        if (EnemyPool.Instance != null)
+        {
+            EnemyPool.Instance.ReturnToPool(this);
+        }
+        else
+        {
+            // fallback cho chac an neu quen chua setup pool trong scene
+            Destroy(gameObject);
+        }
     }
 }

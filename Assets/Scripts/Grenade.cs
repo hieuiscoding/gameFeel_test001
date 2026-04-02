@@ -69,7 +69,6 @@ public class Grenade : MonoBehaviour
 
             // --- BAT MAU ---
             spriteRenderer.color = flashColor;
-            Debug.Log("Đang nháy màu đỏ");
             yield return new WaitForSeconds(flashDuration);
             elapsedTime += flashDuration;
 

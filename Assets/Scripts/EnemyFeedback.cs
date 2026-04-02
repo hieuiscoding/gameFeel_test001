@@ -43,6 +43,9 @@ public class EnemyFeedback : MonoBehaviour
         enemyController.OnTakeDamage += ApplyHitFeel;
         enemyController.OnDie += ApplyDieFeel;
         enemyController.OnAnticipate += ApplyWarningFeel; // dang ky event gong minh
+
+        // moi lan quai duoc bat len tu pool thi tra ve hinh dang ban dau
+        ResetVisuals();
     }
 
     void OnDisable()
@@ -50,6 +53,21 @@ public class EnemyFeedback : MonoBehaviour
         enemyController.OnTakeDamage -= ApplyHitFeel;
         enemyController.OnDie -= ApplyDieFeel;
         enemyController.OnAnticipate -= ApplyWarningFeel; // huy dang ky event
+    }
+
+    private void ResetVisuals()
+    {
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.DOKill();
+            spriteRenderer.color = originalColor; // tra lai alpha la 1
+        }
+
+        if (enemyBody != null)
+        {
+            enemyBody.DOKill();
+            enemyBody.localScale = Vector3.one; // tra lai kich thuoc 1 1 1
+        }
     }
 
     private void ApplyWarningFeel()
@@ -78,11 +96,11 @@ public class EnemyFeedback : MonoBehaviour
             bloodVFX.Emit(bloodEmitCount);
         }
 
-        // kiem tra cooldown cho cac hieu ung nang hon (nhu tween)
+        // kiem tra cooldown cho cac hieu ung nang hon nhu tween
         if (Time.time < lastHitVfxTime + vfxCooldown) return;
         lastHitVfxTime = Time.time;
 
-        // 2. squash & stretch + rung lac (wobble)
+        // 2. squash and stretch + rung lac
         if (enemyBody != null)
         {
             enemyBody.DOKill(true);
