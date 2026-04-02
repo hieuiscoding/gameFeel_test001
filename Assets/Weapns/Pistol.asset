@@ -15,6 +15,6 @@ MonoBehaviour:
   weaponName: Pistol
   isAutomatic: 0
   fireRate: 0.1
-  damage: 1.5
+  damage: 1
   knockbackPower: 15
   parallelSpread: 0.1

@@ -15,6 +15,6 @@ MonoBehaviour:
   weaponName: AssaultRifle
   isAutomatic: 1
   fireRate: 0.08
-  damage: 0.7
+  damage: 0.5
   knockbackPower: 7
   parallelSpread: 0.2

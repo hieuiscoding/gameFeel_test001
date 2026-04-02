@@ -10,12 +10,15 @@ public class EnemyFeedback : MonoBehaviour
     [SerializeField] private ParticleSystem bloodVFX;
     [SerializeField] private ParticleSystem deathVFX; // them hieu ung no xac
     [SerializeField] private AudioClip deathSound; // sound khi quai chet
-    [SerializeField] [Range(0f, 1f)] private float deathSoundVolume = 1f; // 2D volume (AudioManager enforces 2D)
+    [SerializeField][Range(0f, 1f)] private float deathSoundVolume = 1f; // 2D volume (AudioManager enforces 2D)
 
     [Header("hit feel settings")]
     [SerializeField] private Color hitFlashColor = Color.white; // chop trang nhin se "luc" hon
     [SerializeField] private float flashDuration = 0.1f;
     [SerializeField] private float wobbleStrength = 15f; // do rung lac khi an dan
+
+    [Header("dash warning")]
+    [SerializeField] private Color warningColor = Color.yellow; // mau canh bao rinh moi
 
     private EnemyController enemyController;
     private Color originalColor;
@@ -33,12 +36,32 @@ public class EnemyFeedback : MonoBehaviour
     {
         enemyController.OnTakeDamage += ApplyHitFeel;
         enemyController.OnDie += ApplyDieFeel;
+        enemyController.OnAnticipate += ApplyWarningFeel; // dang ky event gong minh
     }
 
     void OnDisable()
     {
         enemyController.OnTakeDamage -= ApplyHitFeel;
         enemyController.OnDie -= ApplyDieFeel;
+        enemyController.OnAnticipate -= ApplyWarningFeel; // huy dang ky event
+    }
+
+    private void ApplyWarningFeel()
+    {
+        if (enemyBody != null)
+        {
+            enemyBody.DOKill(true);
+            // ep dep xuong giong nhu con meo dang rinh chuot
+            enemyBody.DOScale(new Vector3(1.2f, 0.7f, 1f), 0.2f).SetEase(Ease.OutQuad);
+        }
+
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.DOKill();
+            // chop mau canh bao roi tu tra ve mau goc truoc khi lao
+            spriteRenderer.color = warningColor;
+            spriteRenderer.DOColor(originalColor, 0.3f);
+        }
     }
 
     private void ApplyHitFeel()

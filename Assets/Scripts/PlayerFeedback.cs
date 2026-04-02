@@ -138,8 +138,20 @@ public class PlayerFeedback : MonoBehaviour
 
     private IEnumerator HitStopRoutine(float duration)
     {
-        Time.timeScale = 0f;
+        // 1. luu lai am luong goc
+        float originalVolume = AudioListener.volume;
+
+        // 2. tao cam giac "u tai" (giam manh am luong global) 
+        AudioListener.volume = 0.15f;
+
+        // 3. de timescale = 0.02 thay vi 0 de game co do nhoai nhe, khong bi chet cung
+        Time.timeScale = 0.02f;
+
+        // cho het thoi gian hitstop (phai dung waitforsecondsrealtime vi timescale dang gan 0)
         yield return new WaitForSecondsRealtime(duration);
+
+        // 4. tra moi thu ve trang thai binh thuong
         Time.timeScale = 1f;
+        AudioListener.volume = originalVolume;
     }
 }
