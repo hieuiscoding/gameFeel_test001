@@ -183,7 +183,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
   currentState: 0
   maxHealth: 4
-  moveSpeed: 2
+  moveSpeed: 1.3
   dashRange: 4
   dashSpeed: 12
   anticipateTime: 0.3

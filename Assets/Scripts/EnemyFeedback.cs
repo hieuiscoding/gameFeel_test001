@@ -44,8 +44,7 @@ public class EnemyFeedback : MonoBehaviour
         enemyController.OnDie += ApplyDieFeel;
         enemyController.OnAnticipate += ApplyWarningFeel; // dang ky event gong minh
 
-        // moi lan quai duoc bat len tu pool thi tra ve hinh dang ban dau
-        ResetVisuals();
+        ResetVisuals(); // moi lan quai duoc bat len tu pool thi tra ve hinh dang ban dau
     }
 
     void OnDisable()
@@ -66,7 +65,10 @@ public class EnemyFeedback : MonoBehaviour
         if (enemyBody != null)
         {
             enemyBody.DOKill();
-            enemyBody.localScale = Vector3.one; // tra lai kich thuoc 1 1 1
+            enemyBody.localScale = Vector3.one;
+
+            // ep ve goc 0, dung thang day khong quay nua
+            enemyBody.localRotation = Quaternion.identity;
         }
     }
 
@@ -132,7 +134,7 @@ public class EnemyFeedback : MonoBehaviour
                 volume = deathSoundVolume,
                 volumeVariance = 0.06f,
                 pitch = 1f,
-                pitchVariance = deathPitchVariance, // su dung bien tren inspector
+                pitchVariance = deathPitchVariance,
                 maxDelaySeconds = 0f,
                 minIntervalPerClip = 0.15f,
                 allowStealWhenBusy = true
@@ -155,27 +157,33 @@ public class EnemyFeedback : MonoBehaviour
             Destroy(tempAudio, deathSound.length); // huy sau khi chay xong am thanh
         }
 
-        // 1. tao ra ban sao cua prefab vfx tai vi tri quai chet
-        if (deathVFX != null)
+        // 1. tao ra ban sao cua vfx tu pool tai vi tri quai chet
+        if (deathVFX != null && SimpleVFXPool.Instance != null)
         {
-            ParticleSystem fx = Instantiate(deathVFX, transform.position, Quaternion.identity);
+            GameObject fxObj = SimpleVFXPool.Instance.Spawn(deathVFX.gameObject, transform.position, Quaternion.identity);
+            ParticleSystem fx = fxObj.GetComponent<ParticleSystem>();
             fx.Play();
-            Destroy(fx.gameObject, 2f); // xoa ban sao nay sau 2s
+
+            // tra vfx ve pool sau 2s
+            SimpleVFXPool.Instance.Despawn(fxObj, 2f);
         }
 
         // 2. bop bep di sat xuong dat
         if (enemyBody != null)
         {
             enemyBody.DOKill(true);
-            enemyBody.DOScale(new Vector3(1.5f, 0.1f, 1f), 0.2f).SetEase(Ease.OutQuad);
+
+            // dung quay truoc roi moi bop bep
+            enemyBody.localRotation = Quaternion.identity;
+
+            enemyBody.DOScale(new Vector3(1.5f, 0.15f, 1f), 0.2f).SetEase(Ease.OutQuad);
         }
 
-        // 3. mo dan roi bien mat TRUOC KHI bi thu hoi vao pool
+        // 3. mo dan roi bien mat truoc khi bi thu hoi vao pool
         if (spriteRenderer != null)
         {
-            spriteRenderer.DOKill(); // dam bao kill cac tween truoc do
+            spriteRenderer.DOKill();
 
-            // Cho 4.5 giay roi moi bat dau fade mo di trong 0.5 giay
             spriteRenderer.DOFade(0f, 0.5f).SetDelay(4.5f);
         }
     }

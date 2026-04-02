@@ -1,4 +1,3 @@
-using System.Collections; // bat buoc phai co de dung IEnumerator
 using Unity.Cinemachine;
 using UnityEngine;
 
@@ -7,19 +6,19 @@ using UnityEngine;
 public class Grenade : MonoBehaviour
 {
     [Header("references")]
-    [SerializeField] private SpriteRenderer spriteRenderer; // can keo thả SpriteRenderer của lựu đạn vào đây
+    [SerializeField] private SpriteRenderer spriteRenderer;
 
     [Header("settings")]
     [SerializeField] private float explosionRadius = 3f;
     [SerializeField] private float damage = 5f;
     [SerializeField] private float knockbackPower = 20f;
-    [SerializeField] private float explosionDelay = 1.5f; // thoi gian tu luc nem den luc no
+    [SerializeField] private float explosionDelay = 1.5f;
     [SerializeField] private LayerMask enemyLayer;
 
     [Header("flashing settings")]
-    [SerializeField] private Color flashColor = Color.red; // mau khi nhap nhay (nen dung mau do hoac trang sang)
-    [SerializeField] private float initialFlashSpeed = 3f; // toc do nhap nhay ban dau (so lan/giay)
-    [SerializeField] private float maxFlashSpeed = 15f;    // toc do nhap nhay toi da ngay truoc khi no
+    [SerializeField] private Color flashColor = Color.red;
+    [SerializeField] private float initialFlashSpeed = 3f;
+    [SerializeField] private float maxFlashSpeed = 15f;
 
     [Header("vfx & sfx")]
     [SerializeField] private ParticleSystem explosionVFX;
@@ -28,7 +27,11 @@ public class Grenade : MonoBehaviour
     private Rigidbody2D rb;
     private CinemachineImpulseSource impulseSource;
     private Color originalColor;
-    private Coroutine flashCoroutine; // luu coroutine de quan ly
+
+    // Dung timer thu cong de xoa so hoan toan Coroutine (zero rác)
+    private float lifeTimer;
+    private float flashTimer;
+    private bool isFlashingColor;
 
     private void Awake()
     {
@@ -37,69 +40,67 @@ public class Grenade : MonoBehaviour
 
         if (spriteRenderer != null)
         {
-            originalColor = spriteRenderer.color; // luu lai mau goc
+            originalColor = spriteRenderer.color;
         }
     }
 
-    private void Start()
+    // Dung OnEnable de object tu reset khi duoc bat ra tu Pool
+    private void OnEnable()
     {
-        // 1. Dem nguoc de no
-        Invoke(nameof(Explode), explosionDelay);
+        lifeTimer = 0f;
+        flashTimer = 0f;
+        isFlashingColor = false;
 
-        // 2. Bat dau nhap nhay
         if (spriteRenderer != null)
         {
-            flashCoroutine = StartCoroutine(FlashSequence());
+            spriteRenderer.color = originalColor;
         }
     }
 
-    // Logic nhap nhay nhanh dan
-    private IEnumerator FlashSequence()
+    private void Update()
     {
-        float elapsedTime = 0f;
+        lifeTimer += Time.deltaTime;
 
-        while (elapsedTime < explosionDelay)
+        // 1. Kiem tra no
+        if (lifeTimer >= explosionDelay)
         {
-            // Tinh toan toc do nhap nhay hien tai (Lerp tu cham den nhanh dua tren thoi gian)
-            float percentComplete = elapsedTime / explosionDelay;
-            float currentFlashSpeed = Mathf.Lerp(initialFlashSpeed, maxFlashSpeed, percentComplete);
-
-            // Tinh thoi gian "bat" va "tat" mau (chia doi chu ky)
-            float flashDuration = 1f / (currentFlashSpeed * 2f);
-
-            // --- BAT MAU ---
-            spriteRenderer.color = flashColor;
-            yield return new WaitForSeconds(flashDuration);
-            elapsedTime += flashDuration;
-
-            // Kiem tra lai neu luu dan da no trong luc doi
-            if (elapsedTime >= explosionDelay) break;
-
-            // --- TAT MAU (ve mau goc) ---
-            spriteRenderer.color = originalColor;
-            yield return new WaitForSeconds(flashDuration);
-            elapsedTime += flashDuration;
+            Explode();
+            return;
         }
 
-        // Dam bao tra ve mau goc truoc khi xoa object
-        spriteRenderer.color = originalColor;
+        // 2. Xu ly nhap nhay bang toan hoc, khong dung yield return
+        if (spriteRenderer != null)
+        {
+            float percentComplete = lifeTimer / explosionDelay;
+            float currentFlashSpeed = Mathf.Lerp(initialFlashSpeed, maxFlashSpeed, percentComplete);
+            float flashDuration = 1f / (currentFlashSpeed * 2f);
+
+            flashTimer += Time.deltaTime;
+            if (flashTimer >= flashDuration)
+            {
+                flashTimer = 0f; // reset dong ho nhap nhay
+                isFlashingColor = !isFlashingColor; // dao trang thai mau
+                spriteRenderer.color = isFlashingColor ? flashColor : originalColor;
+            }
+        }
     }
 
     private void Explode()
     {
-        // Dung Coroutine nhap nhay neu no dang chay
-        if (flashCoroutine != null) StopCoroutine(flashCoroutine);
-
         if (explosionSound != null && AudioManager.Instance != null)
         {
             AudioManager.Instance.PlaySFX(explosionSound);
         }
 
-        if (explosionVFX != null)
+        if (explosionVFX != null && SimpleVFXPool.Instance != null)
         {
-            ParticleSystem fx = Instantiate(explosionVFX, transform.position, Quaternion.identity);
+            // Phat no VFX tu pool
+            GameObject fxObj = SimpleVFXPool.Instance.Spawn(explosionVFX.gameObject, transform.position, Quaternion.identity);
+            ParticleSystem fx = fxObj.GetComponent<ParticleSystem>();
             fx.Play();
-            Destroy(fx.gameObject, 3f);
+
+            // Tra VFX ve pool sau 3 giay
+            SimpleVFXPool.Instance.Despawn(fxObj, 3f);
         }
 
         if (impulseSource != null)
@@ -120,7 +121,15 @@ public class Grenade : MonoBehaviour
             }
         }
 
-        Destroy(gameObject);
+        // Tra cai vo luu dan nay ve kho
+        if (SimpleVFXPool.Instance != null)
+        {
+            SimpleVFXPool.Instance.Despawn(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject); // fallback
+        }
     }
 
     private void OnDrawGizmosSelected()

@@ -1,8 +1,7 @@
 using UnityEngine;
 
-// ep buoc phai co controller va audiosource de chay
+// BO require AudioSource đi, dung chung Pool cua AudioManager
 [RequireComponent(typeof(PlayerController))]
-[RequireComponent(typeof(AudioSource))]
 public class PlayerAudioFeedback : MonoBehaviour
 {
     [Header("audio clips")]
@@ -13,21 +12,17 @@ public class PlayerAudioFeedback : MonoBehaviour
 
     [Header("settings")]
     [SerializeField] private float volume = 0.8f;
-    // thay doi cao do ngau nhien de am thanh khong bi robot
     [SerializeField] private float pitchVariation = 0.15f;
 
     private PlayerController playerController;
-    private AudioSource audioSource;
 
     void Awake()
     {
         playerController = GetComponent<PlayerController>();
-        audioSource = GetComponent<AudioSource>();
     }
 
     void OnEnable()
     {
-        // dang ky y het ben hieu ung hinh anh
         playerController.OnJump += PlayJumpSound;
         playerController.OnLand += PlayLandSound;
         playerController.OnShoot += PlayShootSound;
@@ -36,26 +31,31 @@ public class PlayerAudioFeedback : MonoBehaviour
 
     void OnDisable()
     {
-
         playerController.OnJump -= PlayJumpSound;
         playerController.OnLand -= PlayLandSound;
         playerController.OnShoot -= PlayShootSound;
         playerController.OnTakeDamage -= PlayDamageSound;
     }
 
-    // ham xu ly chung cho moi loai am thanh
+    // Ham phat am thanh duoc don gian hoa, day het rui ro sang AudioManager ganh
     private void PlaySound(AudioClip clip)
     {
-        if (clip == null) return;
+        if (clip == null || AudioManager.Instance == null) return;
 
-        // random pitch tu 0.85 den 1.15
-        audioSource.pitch = 1f + Random.Range(-pitchVariation, pitchVariation);
+        // Dong goi thong so giong het y ong muon
+        var opts = new AudioManager.SFXPlayOptions
+        {
+            is2D = true,
+            volume = this.volume,
+            pitch = 1f,
+            pitchVariance = this.pitchVariation,
+            allowStealWhenBusy = true
+            // bo minIntervalPerClip hoac set thap de cho phep nhay/ban lien tuc
+        };
 
-        // dung playoneshot de cac tieng khong bi cat ngang nhau neu ban qua nhanh
-        audioSource.PlayOneShot(clip, volume);
+        AudioManager.Instance.PlaySFX(clip, opts);
     }
 
-    // cac ham goi am thanh cu the
     private void PlayJumpSound() => PlaySound(jumpSound);
     private void PlayLandSound() => PlaySound(landSound);
     private void PlayShootSound() => PlaySound(shootSound);

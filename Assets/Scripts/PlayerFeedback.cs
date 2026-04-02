@@ -131,7 +131,7 @@ public class PlayerFeedback : MonoBehaviour
             globalFlashLight.intensity = globalFlashIntensity;
 
             DOTween.To(() => globalFlashLight.intensity, x => globalFlashLight.intensity = x, 0f, 0.15f)
-                .SetTarget(globalFlashLight); // <--- Đóng mác chủ nhân vào đây
+                .SetTarget(globalFlashLight); 
         }
         if (whiteFlashOverlay != null)
         {
@@ -165,23 +165,27 @@ public class PlayerFeedback : MonoBehaviour
     private void ApplyTracerFeel(Vector3 start, Vector3 end)
     {
         if (bulletTracerPrefab == null) return;
-        LineRenderer tracer = Instantiate(bulletTracerPrefab, start, Quaternion.identity);
+
+        // goi pool lay vet dan ra thay vi instantiate
+        GameObject tracerObj = SimpleVFXPool.Instance.Spawn(bulletTracerPrefab.gameObject, start, Quaternion.identity);
+        LineRenderer tracer = tracerObj.GetComponent<LineRenderer>();
 
         tracer.startColor = Color.white;
         tracer.endColor = new Color(1, 1, 1, 0);
         tracer.startWidth = 0.08f;
 
-        // Ban đầu thu gọn vệt đạn lại đúng 1 điểm ở nòng súng
         tracer.SetPosition(0, start);
         tracer.SetPosition(1, start);
 
         DOVirtual.Vector3(start, end, 0.02f, v => tracer.SetPosition(1, v))
-            .SetUpdate(true) 
+            .SetUpdate(true)
             .OnComplete(() => {
-              
                 DOVirtual.Vector3(start, end, 0.03f, v => tracer.SetPosition(0, v))
                     .SetUpdate(true)
-                    .OnComplete(() => Destroy(tracer.gameObject));
+                    .OnComplete(() => {
+                        // ban xong thi tra lai vao pool
+                        SimpleVFXPool.Instance.Despawn(tracerObj);
+                    });
             });
     }
 
