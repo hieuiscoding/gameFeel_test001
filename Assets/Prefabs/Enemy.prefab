@@ -188,7 +188,7 @@ MonoBehaviour:
   dashSpeed: 12
   anticipateTime: 0.3
   dashDuration: 0.25
-  cooldownTime: 1
+  cooldownTime: 0.5
 --- !u!114 &7515321958158847131
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -207,9 +207,12 @@ MonoBehaviour:
   deathVFX: {fileID: 3119711720231133736, guid: 194f21b2121b93141b7628dd75312981, type: 3}
   deathSound: {fileID: 8300000, guid: 2082a0ac9318f404a92a762f1185821b, type: 3}
   deathSoundVolume: 1
+  deathPitchVariance: 0.25
   hitFlashColor: {r: 1, g: 1, b: 1, a: 1}
   flashDuration: 0.2
   wobbleStrength: 15
+  bloodEmitCount: 5
+  vfxCooldown: 0.1
   warningColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
 --- !u!1 &2481828280502995414
 GameObject:

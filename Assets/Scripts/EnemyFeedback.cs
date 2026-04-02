@@ -9,8 +9,11 @@ public class EnemyFeedback : MonoBehaviour
     [SerializeField] private SpriteRenderer spriteRenderer;
     [SerializeField] private ParticleSystem bloodVFX;
     [SerializeField] private ParticleSystem deathVFX; // them hieu ung no xac
+
+    [Header("audio settings")]
     [SerializeField] private AudioClip deathSound; // sound khi quai chet
     [SerializeField][Range(0f, 1f)] private float deathSoundVolume = 1f;
+    [SerializeField][Range(0f, 1f)] private float deathPitchVariance = 0.2f; // them bien random pitch tren inspector
 
     [Header("hit feel settings")]
     [SerializeField] private Color hitFlashColor = Color.white; // chop trang
@@ -111,7 +114,7 @@ public class EnemyFeedback : MonoBehaviour
                 volume = deathSoundVolume,
                 volumeVariance = 0.06f,
                 pitch = 1f,
-                pitchVariance = 0.05f,
+                pitchVariance = deathPitchVariance, // su dung bien tren inspector
                 maxDelaySeconds = 0f,
                 minIntervalPerClip = 0.15f,
                 allowStealWhenBusy = true
@@ -121,8 +124,17 @@ public class EnemyFeedback : MonoBehaviour
         }
         else if (deathSound != null)
         {
-            // fallback
-            AudioSource.PlayClipAtPoint(deathSound, transform.position, deathSoundVolume);
+            // fallback ho tro random pitch tao the hien tot hon
+            GameObject tempAudio = new GameObject("temp_death_sound");
+            tempAudio.transform.position = transform.position;
+            AudioSource source = tempAudio.AddComponent<AudioSource>();
+
+            source.clip = deathSound;
+            source.volume = deathSoundVolume;
+            source.pitch = 1f + UnityEngine.Random.Range(-deathPitchVariance, deathPitchVariance);
+            source.Play();
+
+            Destroy(tempAudio, deathSound.length); // huy sau khi chay xong am thanh
         }
 
         // 1. tao ra ban sao cua prefab vfx tai vi tri quai chet
