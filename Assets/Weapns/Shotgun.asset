@@ -20,5 +20,5 @@ MonoBehaviour:
   spreadAngle: 15
   damage: 1
   knockbackPower: 15
-  parallelSpread: 6
+  parallelSpread: 0.1
   playerKickback: 10

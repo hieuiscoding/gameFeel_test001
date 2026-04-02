@@ -19,6 +19,6 @@ MonoBehaviour:
   pelletsCount: 1
   spreadAngle: 0
   damage: 1
-  knockbackPower: 15
+  knockbackPower: 10
   parallelSpread: 0.1
   playerKickback: 0

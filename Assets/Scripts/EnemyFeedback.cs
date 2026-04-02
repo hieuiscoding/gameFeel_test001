@@ -10,18 +10,21 @@ public class EnemyFeedback : MonoBehaviour
     [SerializeField] private ParticleSystem bloodVFX;
     [SerializeField] private ParticleSystem deathVFX; // them hieu ung no xac
     [SerializeField] private AudioClip deathSound; // sound khi quai chet
-    [SerializeField][Range(0f, 1f)] private float deathSoundVolume = 1f; // 2D volume (AudioManager enforces 2D)
+    [SerializeField][Range(0f, 1f)] private float deathSoundVolume = 1f;
 
     [Header("hit feel settings")]
-    [SerializeField] private Color hitFlashColor = Color.white; // chop trang nhin se "luc" hon
+    [SerializeField] private Color hitFlashColor = Color.white; // chop trang
     [SerializeField] private float flashDuration = 0.1f;
     [SerializeField] private float wobbleStrength = 15f; // do rung lac khi an dan
+    [SerializeField] private int bloodEmitCount = 5; // so hat mau xit ra moi vien dan
+    [SerializeField] private float vfxCooldown = 0.05f; // cooldown de tranh goi vfx qua day
 
     [Header("dash warning")]
     [SerializeField] private Color warningColor = Color.yellow; // mau canh bao rinh moi
 
     private EnemyController enemyController;
     private Color originalColor;
+    private float lastHitVfxTime; // luu thoi gian lan cuoi chay hit vfx
 
     void Awake()
     {
@@ -66,8 +69,15 @@ public class EnemyFeedback : MonoBehaviour
 
     private void ApplyHitFeel()
     {
-        // 1. xit mau
-        if (bloodVFX != null) bloodVFX.Play();
+        // 1. xit mau (dung emit thay vi play de toi uu fps)
+        if (bloodVFX != null)
+        {
+            bloodVFX.Emit(bloodEmitCount);
+        }
+
+        // kiem tra cooldown cho cac hieu ung nang hon (nhu tween)
+        if (Time.time < lastHitVfxTime + vfxCooldown) return;
+        lastHitVfxTime = Time.time;
 
         // 2. squash & stretch + rung lac (wobble)
         if (enemyBody != null)
@@ -82,7 +92,7 @@ public class EnemyFeedback : MonoBehaviour
             enemyBody.DOPunchRotation(new Vector3(0, 0, wobbleStrength), 0.15f, 10, 1f);
         }
 
-        // 3. chop trang roi tra ve mau goc (khong fix cung la mau trang nua)
+        // 3. chop trang roi tra ve mau goc
         if (spriteRenderer != null)
         {
             spriteRenderer.DOKill();
@@ -93,18 +103,17 @@ public class EnemyFeedback : MonoBehaviour
 
     private void ApplyDieFeel()
     {
-        // Use AudioManager for 2D, pooled, varied SFX playback
         if (deathSound != null && AudioManager.Instance != null)
         {
             var opts = new AudioManager.SFXPlayOptions
             {
-                is2D = true, // enforce non-spatialized 2D playback as requested
+                is2D = true,
                 volume = deathSoundVolume,
                 volumeVariance = 0.06f,
                 pitch = 1f,
                 pitchVariance = 0.05f,
-                maxDelaySeconds = 0f, // small random delay to avoid perfectly aligned playback
-                minIntervalPerClip = 0.15f, // prevent rapid-fire repetition of same death sound
+                maxDelaySeconds = 0f,
+                minIntervalPerClip = 0.15f,
                 allowStealWhenBusy = true
             };
 
