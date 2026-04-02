@@ -233,16 +233,19 @@ public class PlayerController : MonoBehaviour
     {
         if (grenadePrefab == null || shootPoint == null) return;
 
-        GameObject grenade = Instantiate(grenadePrefab, shootPoint.position, Quaternion.identity);
+        // lay luu dan tu pool
+        GameObject grenade = SimpleVFXPool.Instance.Spawn(grenadePrefab, shootPoint.position, Quaternion.identity);
         Rigidbody2D rbGrenade = grenade.GetComponent<Rigidbody2D>();
 
         if (rbGrenade != null)
         {
-            // nem theo huong mat cua nhan vat + hoi check len tren tao duong vong cung
+            // reset lai van toc truoc khi nem de tranh loi luc roi cua object cu
+            rbGrenade.linearVelocity = Vector2.zero;
+            rbGrenade.angularVelocity = 0f;
+
             Vector2 force = new Vector2(faceDir * throwForce, throwUpwardForce);
             rbGrenade.AddForce(force, ForceMode2D.Impulse);
 
-            // tao do xoay cho luu dan bay tu nhien
             rbGrenade.AddTorque(-faceDir * 15f, ForceMode2D.Impulse);
         }
 

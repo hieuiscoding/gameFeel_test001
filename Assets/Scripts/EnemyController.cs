@@ -7,8 +7,10 @@ public class EnemyController : MonoBehaviour
     public event Action OnTakeDamage;
     public event Action OnDie;
     public event Action OnAnticipate; // bao hieu luc bat dau gong de feedback chay hieu ung
+    public event Action OnPerfectInterrupt;
 
-    public enum EnemyState { chase, anticipate, dash, cooldown }
+    // 1. THEM TRANG THAI BOWLING VAO DAY
+    public enum EnemyState { chase, anticipate, dash, cooldown, bowling }
     public EnemyState currentState = EnemyState.chase;
 
     [Header("stats")]
@@ -71,7 +73,12 @@ public class EnemyController : MonoBehaviour
         if (distToPlayer > horizontalEpsilon)
         {
             dir = Mathf.Sign(dx);
-            if (currentState != EnemyState.dash) lastMoveDirection = dir; // khong quay mat luc dang bay
+
+            // 2. CHAN QUAY MAT LUC DANG BAY HOAC DANG LAM BOWLING
+            if (currentState != EnemyState.dash && currentState != EnemyState.bowling)
+            {
+                lastMoveDirection = dir;
+            }
         }
 
         // may trang thai (state machine)
@@ -122,6 +129,10 @@ public class EnemyController : MonoBehaviour
                     currentState = EnemyState.chase;
                 }
                 break;
+
+            // 3. CASE BOWLING: Mac ke cho vat ly day no di, khong lam gi ca
+            case EnemyState.bowling:
+                break;
         }
 
         // quay hinh anh quai
@@ -131,7 +142,24 @@ public class EnemyController : MonoBehaviour
     public void TakeDamage(float damage, Vector2 knockbackForce)
     {
         rb.linearVelocity = Vector2.zero;
-        rb.AddForce(knockbackForce, ForceMode2D.Impulse);
+
+        // 4. KIEM TRA XEM CO DANG BI NGAT HOAN HAO KHONG
+        bool isPerfectInterrupt = false;
+
+        if (isPerfectInterrupt)
+        {
+            currentState = EnemyState.bowling; // KHOA NAO THANH BOWLING
+            rb.AddForce(knockbackForce * 2f, ForceMode2D.Impulse);
+            gameObject.layer = LayerMask.NameToLayer("BowlingBall");
+
+            damage *= 3f; // sat thuong x3 cho chet han
+
+            OnPerfectInterrupt?.Invoke();
+        }
+        else
+        {
+            rb.AddForce(knockbackForce, ForceMode2D.Impulse);
+        }
 
         if (isDead)
         {
@@ -140,12 +168,15 @@ public class EnemyController : MonoBehaviour
         }
 
         currentHealth -= damage;
-        stunTimer = 0.2f;
 
-        // neu dang gong hoac dang vồ ma an dan thi reset ve chase
-        if (currentState != EnemyState.cooldown)
+        // 5. CHI RESET TRANG THAI NEU KHONG PHAI LA BOWLING
+        if (!isPerfectInterrupt)
         {
-            currentState = EnemyState.chase;
+            stunTimer = 0.2f;
+            if (currentState != EnemyState.cooldown)
+            {
+                currentState = EnemyState.chase;
+            }
         }
 
         OnTakeDamage?.Invoke();
@@ -164,7 +195,7 @@ public class EnemyController : MonoBehaviour
         stunTimer = 0f;
 
         rb.linearVelocity = Vector2.zero;
-        rb.linearDamping = 0f; // SỬA linearDrag THÀNH drag
+        rb.linearDamping = 0f;
         transform.rotation = Quaternion.identity;
         gameObject.layer = originalLayer;
     }
@@ -174,12 +205,18 @@ public class EnemyController : MonoBehaviour
         isDead = true;
         OnDie?.Invoke();
 
-        // 1. XOA (HOAC COMMENT) dong xoay nay de chong lai DOTween khien box bi dung dung
-        // transform.rotation = Quaternion.Euler(0, 0, -90f * Mathf.Sign(transform.localScale.x));
+        // Check xem layer co ton tai khong truoc khi gan
+        int corpseLayer = LayerMask.NameToLayer("Corpse");
+        if (corpseLayer == -1)
+        {
+            Debug.LogWarning("Chưa tạo layer 'Corpse' trong Unity kìa ông ơi!");
+        }
+        else
+        {
+            gameObject.layer = corpseLayer;
+        }
 
-        gameObject.layer = LayerMask.NameToLayer("Corpse");
-
-        // 2. THEM DONG NAY: Tang ma sat (Drag) len that cao de cai xac bi thang gap lai tren mat dat
+        // Tang ma sat len that cao de cai xac bi thang gap lai tren mat dat
         rb.linearDamping = 15f;
 
         Invoke(nameof(Despawn), 5f);
