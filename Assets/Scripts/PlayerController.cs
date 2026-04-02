@@ -44,7 +44,15 @@ public class PlayerController : MonoBehaviour
     private float faceDir = 1f;
 
     public Vector2 Velocity => rb.linearVelocity;
+    public event Action OnThrowGrenade; // them event de feedback lang nghe
 
+    [Header("grenade settings")]
+    [SerializeField] private GameObject grenadePrefab;
+    [SerializeField] private float throwForce = 12f;
+    [SerializeField] private float throwUpwardForce = 5f;
+    [SerializeField] private float grenadeCooldown = 1f;
+
+    private float nextGrenadeTime = 0f;
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -122,6 +130,12 @@ public class PlayerController : MonoBehaviour
 
         HandleWeaponSwitch();
         HandleShooting();
+        // check chuot phai (1) de nem luu dan
+        if (Input.GetMouseButtonDown(1) && Time.time >= nextGrenadeTime)
+        {
+            nextGrenadeTime = Time.time + grenadeCooldown;
+            ExecuteThrowGrenade();
+        }
 
         if (Input.GetKeyDown(KeyCode.T))
         {
@@ -213,6 +227,26 @@ public class PlayerController : MonoBehaviour
         }
 
         OnShoot?.Invoke();
+    }
+
+    private void ExecuteThrowGrenade()
+    {
+        if (grenadePrefab == null || shootPoint == null) return;
+
+        GameObject grenade = Instantiate(grenadePrefab, shootPoint.position, Quaternion.identity);
+        Rigidbody2D rbGrenade = grenade.GetComponent<Rigidbody2D>();
+
+        if (rbGrenade != null)
+        {
+            // nem theo huong mat cua nhan vat + hoi check len tren tao duong vong cung
+            Vector2 force = new Vector2(faceDir * throwForce, throwUpwardForce);
+            rbGrenade.AddForce(force, ForceMode2D.Impulse);
+
+            // tao do xoay cho luu dan bay tu nhien
+            rbGrenade.AddTorque(-faceDir * 15f, ForceMode2D.Impulse);
+        }
+
+        OnThrowGrenade?.Invoke();
     }
 
     private void ApplySmartGravity()

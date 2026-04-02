@@ -41,6 +41,7 @@ public class PlayerFeedback : MonoBehaviour
         playerController.OnTakeDamage += ApplyDamageFeel;
         playerController.OnDrawTracer += ApplyTracerFeel; // ve vệt dan
         playerController.OnWeaponSwitched += ApplyWeaponSwitch; // doi sung
+        playerController.OnThrowGrenade += ApplyThrowFeel;
     }
 
     void OnDisable()
@@ -51,6 +52,7 @@ public class PlayerFeedback : MonoBehaviour
         playerController.OnTakeDamage -= ApplyDamageFeel;
         playerController.OnDrawTracer -= ApplyTracerFeel;
         playerController.OnWeaponSwitched -= ApplyWeaponSwitch;
+        playerController.OnThrowGrenade -= ApplyThrowFeel;
     }
 
     void Start()
@@ -90,7 +92,12 @@ public class PlayerFeedback : MonoBehaviour
     {
         if (weaponPivot != null)
         {
-            weaponPivot.DOKill();
+            weaponPivot.DOKill(); // dung moi hieu ung dang chay
+
+            // CHOT CHAN: Ep ve vi tri va goc chuan truoc khi giat
+            weaponPivot.localPosition = Vector3.zero;
+            weaponPivot.localRotation = Quaternion.identity;
+
             weaponPivot.DOLocalMoveX(-0.5f, 0.05f)
                 .SetEase(Ease.OutExpo)
                 .OnComplete(() => weaponPivot.DOLocalMoveX(0f, 0.2f));
@@ -105,6 +112,27 @@ public class PlayerFeedback : MonoBehaviour
             muzzleLight.DOKill();
             muzzleLight.intensity = flashIntensity;
             DOTween.To(() => muzzleLight.intensity, x => muzzleLight.intensity = x, 0f, 0.1f);
+        }
+    }
+
+    private void ApplyThrowFeel()
+    {
+        if (weaponPivot != null)
+        {
+            weaponPivot.DOKill();
+
+            // CHOT CHAN: Ep ve vi tri va goc chuan truoc khi vung tay
+            weaponPivot.localPosition = Vector3.zero;
+            weaponPivot.localRotation = Quaternion.identity;
+
+            // giat sung len tren tao cam giac vung tay nem
+            weaponPivot.DOLocalMoveY(0.4f, 0.1f)
+                .SetEase(Ease.OutExpo)
+                .OnComplete(() => weaponPivot.DOLocalMoveY(0f, 0.2f));
+
+            // xoay sung mot chut xiu
+            weaponPivot.DOLocalRotate(new Vector3(0, 0, 30f), 0.1f)
+                .OnComplete(() => weaponPivot.DOLocalRotate(Vector3.zero, 0.2f));
         }
     }
 
