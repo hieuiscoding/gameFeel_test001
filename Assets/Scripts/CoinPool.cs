@@ -1,5 +1,6 @@
-﻿using UnityEngine;
+﻿using DG.Tweening;
 using System.Collections.Generic;
+using UnityEngine;
 
 public class CoinPool : MonoBehaviour
 {
@@ -20,7 +21,12 @@ public class CoinPool : MonoBehaviour
         Instance = this;
         InitializePool();
     }
-
+    void Start()
+    {
+        // Thiết lập sức chứa tối đa cho DOTween (Tùy quy mô game)
+        // Ví dụ: 500 Tweens cùng lúc, 50 Sequences
+        DOTween.SetTweensCapacity(500, 50);
+    }
     private void InitializePool()
     {
         for (int i = 0; i < initialPoolSize; i++)

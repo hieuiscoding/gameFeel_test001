@@ -223,35 +223,42 @@ public class PlayerController : MonoBehaviour
     private void ExecuteRoll()
     {
         isRolling = true;
-        isInvincible = true; // Bật i-frames
+        isInvincible = true;
         nextRollTime = Time.time + rollCooldown;
 
-        // TẮT va chạm giữa Player và Enemy
+        // Tắt va chạm với Enemy
         int playerLayerIdx = gameObject.layer;
         int enemyLayerIdx = LayerMask.NameToLayer("Enemy");
         if (enemyLayerIdx != -1) Physics2D.IgnoreLayerCollision(playerLayerIdx, enemyLayerIdx, true);
 
-        // Hướng lộn: LUÔN NGƯỢC LẠI hướng đang quay mặt/ngắm bắn
-        float rollDir = -faceDir;
+        // --- LOGIC HƯỚNG DASH MỚI ---
+        float rollDir;
 
-        // Dùng DOVirtual để tween Velocity từ (tốc độ cao) -> 0. 
-        // Phép toán distance/duration * 1.5f giúp tạo đà vọt mạnh lúc đầu và hãm lại lúc sau.
+        // Nếu đang bấm phím di chuyển (A hoặc D)
+        if (Mathf.Abs(horizontalInput) > 0.1f)
+        {
+            rollDir = Mathf.Sign(horizontalInput); // Dash theo hướng đang bấm
+        }
+        else
+        {
+            // Nếu đứng yên thì mặc định lộn ngược lại hướng đang ngắm (giữ nguyên logic cũ)
+            rollDir = -faceDir;
+        }
+
+        // Tính toán tốc độ bắt đầu dựa trên quãng đường và thời gian
         float startSpeed = (rollDistance / rollDuration) * 1.5f;
 
+        // Dùng DOVirtual để điều khiển vận tốc
         DOVirtual.Float(startSpeed, 0f, rollDuration, v => {
-            if (isRolling) rb.linearVelocity = new Vector2(v * rollDir, 0f); // khóa trục Y (0f) để trượt trên đất phẳng lỳ
+            if (isRolling) rb.linearVelocity = new Vector2(v * rollDir, rb.linearVelocity.y); // Giữ nguyên Velocity.y để không bị khựng khi Air Dash
         }).SetEase(Ease.OutCubic).OnComplete(() => {
             isRolling = false;
-            isInvincible = false; // Tắt i-frames
-
-            // BẬT lại va chạm bình thường
+            isInvincible = false;
             if (enemyLayerIdx != -1) Physics2D.IgnoreLayerCollision(playerLayerIdx, enemyLayerIdx, false);
         });
 
         OnRoll?.Invoke();
     }
-
-    // ... (CÁC HÀM CÒN LẠI NHƯ HandleWeaponSwitch, ExecuteShoot, ExecuteThrowGrenade, ApplySmartGravity GIỮ NGUYÊN) ...
 
     private void HandleWeaponSwitch()
     {

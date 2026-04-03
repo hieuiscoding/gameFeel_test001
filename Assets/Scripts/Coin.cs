@@ -16,7 +16,7 @@ public class Coin : MonoBehaviour
 
     private bool isCollected = false;
     private SpriteRenderer sr;
-    private Animator anim; // Thêm Animator
+    private Animator anim;
 
     void Awake()
     {
@@ -31,39 +31,32 @@ public class Coin : MonoBehaviour
         // 1. DỌN DẸP TWEEN VỊ TRÍ CŨ
         transform.DOKill();
 
-        // Reset hình ảnh
-        if (sr != null)
-        {
-            Color c = sr.color;
-            c.a = 1f;
-            sr.color = c;
-        }
-        transform.localScale = Vector3.one;
+        // Reset hiển thị
+        if (sr != null) { Color c = sr.color; c.a = 1f; sr.color = c; }
 
-        // 2. RESET ANIMATOR (Quan trọng khi dùng Pool)
+        // --- QUAN TRỌNG: RESET ANIMATOR ---
         if (anim != null)
         {
-            anim.Play(0, -1, 0f); // Chơi lại animation từ frame đầu tiên
-            anim.enabled = true;  // Đảm bảo animator đang bật
+            anim.enabled = true; // Bật lại nếu lần trước bị tắt
+            anim.Play(0, -1, 0f); // Chơi lại từ frame đầu tiên
         }
 
-        // 3. LOGIC BUNG XU (Giữ nguyên phần bay nhảy)
-        transform.DOMoveY(transform.position.y + 1.2f, 0.15f)
-            .SetEase(Ease.OutBack)
-            .OnComplete(() =>
-            {
-                float randomX = transform.position.x + UnityEngine.Random.Range(-scatterRange, scatterRange);
-                float targetY = transform.position.y;
+        // 2. LOGIC BUNG XU (Chỉ dùng DOTween cho Vị Trí)
+        float targetY = transform.position.y + 1.2f;
+        transform.DOMoveY(targetY, 0.15f).SetEase(Ease.OutBack).OnComplete(() => {
 
-                RaycastHit2D hit = Physics2D.Raycast(new Vector2(randomX, transform.position.y), Vector2.down, 15f, groundLayer);
-                if (hit.collider != null)
-                {
-                    targetY = hit.point.y + 0.25f;
-                }
+            float randomX = transform.position.x + UnityEngine.Random.Range(-scatterRange, scatterRange);
+            float groundY = transform.position.y;
+            RaycastHit2D hit = Physics2D.Raycast(new Vector2(randomX, transform.position.y), Vector2.down, 15f, groundLayer);
+            if (hit.collider != null) groundY = hit.point.y + 0.25f;
 
-                transform.DOJump(new Vector3(randomX, targetY, 0), jumpPower, 1, jumpDuration)
-                    .SetEase(Ease.OutQuad);
-            });
+            transform.DOJump(new Vector3(randomX, groundY, 0), jumpPower, 1, jumpDuration).SetEase(Ease.OutQuad);
+        });
+    }
+
+    void OnDisable()
+    {
+        transform.DOKill();
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -74,37 +67,14 @@ public class Coin : MonoBehaviour
         {
             isCollected = true;
 
-            // Tắt Animator khi bị nhặt để nó không ghi đè Scale lúc mình đang làm hiệu ứng mờ dần
+            // Tắt Animator khi nhặt để DOTween có thể xử lý hiệu ứng mờ dần/bay lên mà không bị ghi đè
             if (anim != null) anim.enabled = false;
 
             // --- LOGIC ÂM THANH ---
-            if (pickupSound != null)
-            {
-                if (AudioManager.Instance != null)
-                {
-                    AudioManager.Instance.PlaySFX(pickupSound, new AudioManager.SFXPlayOptions
-                    {
-                        is2D = true,
-                        volume = 0.8f,
-                        pitch = 1f,
-                        pitchVariance = pickupPitchVariance
-                    });
-                }
-                else
-                {
-                    GameObject tempAudio = new GameObject("temp_coin_sound");
-                    tempAudio.transform.position = transform.position;
-                    AudioSource source = tempAudio.AddComponent<AudioSource>();
-                    source.clip = pickupSound;
-                    source.volume = 0.8f;
-                    source.pitch = 1f + Random.Range(-pickupPitchVariance, pickupPitchVariance);
-                    source.Play();
-                    Destroy(tempAudio, pickupSound.length);
-                }
-            }
+            PlayPickupSound();
 
             transform.DOKill();
-            // Bay lên nhẹ khi nhặt
+            // Bay lên nhẹ và mờ dần
             transform.DOMoveY(transform.position.y + 1f, 0.2f).SetEase(Ease.OutQuad);
 
             if (sr != null)
@@ -118,15 +88,35 @@ public class Coin : MonoBehaviour
         }
     }
 
-    private void DespawnCoin()
+    private void PlayPickupSound()
     {
-        if (CoinPool.Instance != null)
+        if (pickupSound == null) return;
+
+        if (AudioManager.Instance != null)
         {
-            CoinPool.Instance.ReturnToPool(this);
+            AudioManager.Instance.PlaySFX(pickupSound, new AudioManager.SFXPlayOptions
+            {
+                is2D = true,
+                volume = 0.8f,
+                pitch = 1f,
+                pitchVariance = pickupPitchVariance
+            });
         }
         else
         {
-            Destroy(gameObject);
+            GameObject tempAudio = new GameObject("temp_coin_sound");
+            AudioSource source = tempAudio.AddComponent<AudioSource>();
+            source.clip = pickupSound;
+            source.volume = 0.8f;
+            source.pitch = 1f + Random.Range(-pickupPitchVariance, pickupPitchVariance);
+            source.Play();
+            Destroy(tempAudio, pickupSound.length);
         }
+    }
+
+    private void DespawnCoin()
+    {
+        if (CoinPool.Instance != null) CoinPool.Instance.ReturnToPool(this);
+        else Destroy(gameObject);
     }
 }

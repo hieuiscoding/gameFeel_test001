@@ -21,6 +21,6 @@ MonoBehaviour:
   damage: 1.5
   knockbackPower: 15
   parallelSpread: 0.1
-  playerKickback: 10
+  playerKickback: 2
   shootSound: {fileID: 0}
   shootVolume: 0.8
