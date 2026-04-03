@@ -8,8 +8,15 @@ public class PlayerController : MonoBehaviour
     public event Action OnLand;
     public event Action OnShoot; // phat am thanh, flash
     public event Action OnTakeDamage;
-    public event Action<Vector3, Vector3> OnDrawTracer; // ve tung tia dan rieng le
+    // Thêm thông tin vào event: startPos, endPos, damage, knockback
+    public event Action<Vector3, Vector3, float, float> OnDrawTracer;
     public event Action<Sprite> OnWeaponSwitched; // doi hinh anh sung
+    public event Action OnThrowGrenade; // them event de feedback lang nghe
+
+    [Header("auto aim settings")]
+    [SerializeField] private float targetRange = 10f; // tầm quét quái
+    [SerializeField] private Transform weaponPivot; // cái pivot bọc ngoài cái súng để xoay
+    private Transform currentTarget;
 
     [Header("movement settings")]
     [SerializeField] private float moveSpeed = 8f;
@@ -31,8 +38,15 @@ public class PlayerController : MonoBehaviour
     [Header("weapons")]
     [SerializeField] private WeaponData[] weapons;
 
+    [Header("grenade settings")]
+    [SerializeField] private GameObject grenadePrefab;
+    [SerializeField] private float throwForce = 12f;
+    [SerializeField] private float throwUpwardForce = 5f;
+    [SerializeField] private float grenadeCooldown = 1f;
+
     private int currentWeaponIndex = 0;
     private float nextFireTime = 0f;
+    private float nextGrenadeTime = 0f;
 
     private Rigidbody2D rb;
     private float horizontalInput;
@@ -44,15 +58,7 @@ public class PlayerController : MonoBehaviour
     private float faceDir = 1f;
 
     public Vector2 Velocity => rb.linearVelocity;
-    public event Action OnThrowGrenade; // them event de feedback lang nghe
 
-    [Header("grenade settings")]
-    [SerializeField] private GameObject grenadePrefab;
-    [SerializeField] private float throwForce = 12f;
-    [SerializeField] private float throwUpwardForce = 5f;
-    [SerializeField] private float grenadeCooldown = 1f;
-
-    private float nextGrenadeTime = 0f;
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -69,8 +75,56 @@ public class PlayerController : MonoBehaviour
         GetInput();
         CheckGrounded();
         UpdateTimers();
+        FindNearestTarget();
+
+        // FIX LỖI: Bắt buộc phải xoay súng TRƯỚC khi xử lý nút bấm bắn!
+        RotateWeapon();
+
         HandleActionInputs();
         ApplySmartGravity();
+    }
+
+    private void FindNearestTarget()
+    {
+        Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, targetRange, enemyLayer);
+        float closestDist = Mathf.Infinity;
+        Transform closestEnemy = null;
+
+        foreach (var enemy in enemies)
+        {
+            float dist = Vector2.Distance(transform.position, enemy.transform.position);
+            if (dist < closestDist)
+            {
+                closestDist = dist;
+                closestEnemy = enemy.transform;
+            }
+        }
+        currentTarget = closestEnemy;
+    }
+
+    private void RotateWeapon()
+    {
+        if (weaponPivot == null) return;
+
+        Vector3 targetDir;
+        if (currentTarget != null) targetDir = (currentTarget.position - weaponPivot.position).normalized;
+        else targetDir = Vector3.right * faceDir;
+
+        float angle = Mathf.Atan2(targetDir.y, targetDir.x) * Mathf.Rad2Deg;
+
+        if (angle > 90 || angle < -90)
+        {
+            faceDir = -1f;
+            transform.localScale = new Vector3(-1, 1, 1);
+            angle += 180f;
+        }
+        else
+        {
+            faceDir = 1f;
+            transform.localScale = new Vector3(1, 1, 1);
+        }
+
+        weaponPivot.rotation = Quaternion.Euler(0, 0, angle);
     }
 
     void FixedUpdate()
@@ -108,14 +162,7 @@ public class PlayerController : MonoBehaviour
         float targetSpeed = horizontalInput * moveSpeed;
         float speedDif = targetSpeed - rb.linearVelocity.x;
         float movement = speedDif * acceleration;
-
         rb.AddForce(movement * Vector2.right, ForceMode2D.Force);
-
-        if (horizontalInput != 0)
-        {
-            faceDir = Mathf.Sign(horizontalInput);
-            transform.rotation = Quaternion.Euler(0, faceDir == 1 ? 0 : 180, 0);
-        }
     }
 
     private void HandleActionInputs()
@@ -130,7 +177,7 @@ public class PlayerController : MonoBehaviour
 
         HandleWeaponSwitch();
         HandleShooting();
-        // check chuot phai (1) de nem luu dan
+
         if (Input.GetMouseButtonDown(1) && Time.time >= nextGrenadeTime)
         {
             nextGrenadeTime = Time.time + grenadeCooldown;
@@ -149,7 +196,6 @@ public class PlayerController : MonoBehaviour
 
         for (int i = 0; i < weapons.Length; i++)
         {
-            // neu bam so va sung do co ton tai
             if (Input.GetKeyDown(KeyCode.Alpha1 + i) && currentWeaponIndex != i && weapons[i] != null)
             {
                 currentWeaponIndex = i;
@@ -174,32 +220,37 @@ public class PlayerController : MonoBehaviour
 
     private void ExecuteShoot(WeaponData weapon)
     {
-        Vector3 baseDir = Vector3.right * faceDir;
-
-        // giat lui nguoi choi (kickback) cho cac loai sung hang nang
-        if (weapon.playerKickback > 0f)
+        // FIX LỖI CAO CẤP: Dùng toán học tính thẳng đường đạn vào quái, bỏ qua hierarchy
+        Vector3 shootDirBase;
+        if (currentTarget != null)
         {
-            // ham nhe toc do chay (truc x) de an luc giat, nhung BAT BUOC GIU NGUYEN toc do roi
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x * 0.3f, rb.linearVelocity.y);
-
-            // chi day lui thuan tuy theo chieu ngang
-            rb.AddForce(new Vector2(-faceDir, 0f) * weapon.playerKickback, ForceMode2D.Impulse);
+            shootDirBase = (currentTarget.position - shootPoint.position).normalized;
+        }
+        else
+        {
+            shootDirBase = Vector3.right * faceDir;
         }
 
+        // Ép xoay nòng súng để Muzzle Flash và Light luôn phụt ra chuẩn hướng đạn
+        float exactAngle = Mathf.Atan2(shootDirBase.y, shootDirBase.x) * Mathf.Rad2Deg;
+        shootPoint.rotation = Quaternion.Euler(0, 0, exactAngle);
+
+        if (weapon.playerKickback > 0f)
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x * 0.3f, rb.linearVelocity.y);
+            float kickDir = -Mathf.Sign(shootDirBase.x);
+            rb.AddForce(new Vector2(kickDir, 0f) * weapon.playerKickback, ForceMode2D.Impulse);
+        }
 
         for (int i = 0; i < weapon.pelletsCount; i++)
         {
-            // tinh goc xoe ngau nhien
             float angleOffset = 0f;
             if (weapon.pelletsCount > 1)
             {
                 angleOffset = UnityEngine.Random.Range(-weapon.spreadAngle, weapon.spreadAngle);
             }
 
-            // xoay huong ban
-            Vector3 shootDir = Quaternion.Euler(0, 0, angleOffset) * baseDir;
-
-            // lech nong sung song song 
+            Vector3 shootDir = Quaternion.Euler(0, 0, angleOffset) * shootDirBase;
             Vector3 randomOffset = transform.up * UnityEngine.Random.Range(-weapon.parallelSpread, weapon.parallelSpread);
             Vector3 startPos = shootPoint.position + randomOffset;
             Vector3 endPos;
@@ -209,21 +260,15 @@ public class PlayerController : MonoBehaviour
             if (hit.collider != null)
             {
                 endPos = hit.point;
-
-                EnemyController enemy = hit.collider.GetComponent<EnemyController>();
-                if (enemy != null)
-                {
-                    Vector2 knockback = shootDir * weapon.knockbackPower;
-                    enemy.TakeDamage(weapon.damage, knockback);
-                }
+                // ĐÃ XÓA GỌI TAKE_DAMAGE Ở ĐÂY ĐỂ TRÁNH TRỪ MÁU 2 LẦN
             }
             else
             {
                 endPos = startPos + (shootDir * 15f);
             }
 
-            // goi ve tia dan hien tai
-            OnDrawTracer?.Invoke(startPos, endPos);
+            // Giao phó toàn bộ việc tính toán sát thương cho Tracer bên Feedback
+            OnDrawTracer?.Invoke(startPos, endPos, weapon.damage, weapon.knockbackPower);
         }
 
         OnShoot?.Invoke();
@@ -238,11 +283,12 @@ public class PlayerController : MonoBehaviour
 
         if (rbGrenade != null)
         {
-            // nem theo huong mat cua nhan vat + hoi check len tren tao duong vong cung
-            Vector2 force = new Vector2(faceDir * throwForce, throwUpwardForce);
+            // Ném lựu đạn theo hướng mục tiêu luôn cho ngầu
+            Vector2 aimDir = (currentTarget != null) ? (currentTarget.position - shootPoint.position).normalized : Vector2.right * faceDir;
+
+            Vector2 force = new Vector2(aimDir.x * throwForce, aimDir.y * throwForce + throwUpwardForce);
             rbGrenade.AddForce(force, ForceMode2D.Impulse);
 
-            // tao do xoay cho luu dan bay tu nhien
             rbGrenade.AddTorque(-faceDir * 15f, ForceMode2D.Impulse);
         }
 

@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: AssaultRifle
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   weaponName: AssaultRifle
-  weaponSprite: {fileID: 21300000, guid: df6a04cdc2572db4699004a77afa0d96, type: 3}
+  weaponSprite: {fileID: 21300000, guid: 13924763a603ac94ebf7e73951cfefd5, type: 3}
   isAutomatic: 1
-  fireRate: 0.1
+  fireRate: 0.08
   pelletsCount: 1
   spreadAngle: 0
   damage: 1

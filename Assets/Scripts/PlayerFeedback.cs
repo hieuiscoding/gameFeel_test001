@@ -99,11 +99,10 @@ public class PlayerFeedback : MonoBehaviour
     {
         if (weaponPivot != null)
         {
-            weaponPivot.DOKill(); // dung moi hieu ung dang chay
+            weaponPivot.DOKill();
 
-            // CHOT CHAN: Ep ve vi tri va goc chuan truoc khi giat
+            // FIX: Chỉ reset vị trí tịnh tiến (Move), TUYỆT ĐỐI KHÔNG reset góc xoay (Rotation)
             weaponPivot.localPosition = Vector3.zero;
-            weaponPivot.localRotation = Quaternion.identity;
 
             weaponPivot.DOLocalMoveX(-0.5f, 0.05f)
                 .SetEase(Ease.OutExpo)
@@ -114,30 +113,26 @@ public class PlayerFeedback : MonoBehaviour
         if (muzzleFlash != null) muzzleFlash.Play();
         if (shellFX != null) shellFX.Play();
 
-        // 1. SỬA CẢ MUZZLE LIGHT CHO CHẮC CỐP
         if (muzzleLight != null)
         {
             muzzleLight.DOKill();
             muzzleLight.intensity = flashIntensity;
-
             DOTween.To(() => muzzleLight.intensity, x => muzzleLight.intensity = x, 0f, 0.1f)
-                .SetTarget(muzzleLight); // <--- Đóng mác chủ nhân vào đây
+                .SetTarget(muzzleLight);
         }
 
-        // 2. SỬA GLOBAL FLASH LIGHT
         if (globalFlashLight != null)
         {
             globalFlashLight.DOKill();
             globalFlashLight.intensity = globalFlashIntensity;
-
             DOTween.To(() => globalFlashLight.intensity, x => globalFlashLight.intensity = x, 0f, 0.15f)
-                .SetTarget(globalFlashLight); // <--- Đóng mác chủ nhân vào đây
+                .SetTarget(globalFlashLight);
         }
         if (whiteFlashOverlay != null)
         {
             whiteFlashOverlay.DOKill();
-            whiteFlashOverlay.alpha = 0.4f; // chop trang 40%
-            whiteFlashOverlay.DOFade(0f, 0.1f); // bien mat cuc nhanh
+            whiteFlashOverlay.alpha = 0.4f;
+            whiteFlashOverlay.DOFade(0f, 0.1f);
         }
     }
 
@@ -147,42 +142,64 @@ public class PlayerFeedback : MonoBehaviour
         {
             weaponPivot.DOKill();
 
-            // CHOT CHAN: Ep ve vi tri va goc chuan truoc khi vung tay
+            // FIX: Bỏ reset góc xoay
             weaponPivot.localPosition = Vector3.zero;
-            weaponPivot.localRotation = Quaternion.identity;
 
-            // giat sung len tren tao cam giac vung tay nem
             weaponPivot.DOLocalMoveY(0.4f, 0.1f)
                 .SetEase(Ease.OutExpo)
                 .OnComplete(() => weaponPivot.DOLocalMoveY(0f, 0.2f));
 
-            // xoay sung mot chut xiu
-            weaponPivot.DOLocalRotate(new Vector3(0, 0, 30f), 0.1f)
-                .OnComplete(() => weaponPivot.DOLocalRotate(Vector3.zero, 0.2f));
+            // Chỉ cộng dồn góc xoay nhẹ để tạo cảm giác vung tay, không bẻ gãy hệ thống Aim
+            weaponPivot.DOPunchRotation(new Vector3(0, 0, 30f), 0.3f, 10, 1f);
         }
     }
 
-    private void ApplyTracerFeel(Vector3 start, Vector3 end)
+
+    private void ApplyTracerFeel(Vector3 start, Vector3 end, float damage, float knockbackPower)
     {
         if (bulletTracerPrefab == null) return;
         LineRenderer tracer = Instantiate(bulletTracerPrefab, start, Quaternion.identity);
+
+        // --- DÒNG MỚI ĐỂ FIX LỖI 100% ---
+        // Ép buộc LineRenderer phải dùng tọa độ thế giới, bỏ qua mọi vấn đề về hierarchy
+        tracer.useWorldSpace = true;
 
         tracer.startColor = Color.white;
         tracer.endColor = new Color(1, 1, 1, 0);
         tracer.startWidth = 0.08f;
 
-        // Ban đầu thu gọn vệt đạn lại đúng 1 điểm ở nòng súng
         tracer.SetPosition(0, start);
         tracer.SetPosition(1, start);
 
-        DOVirtual.Vector3(start, end, 0.02f, v => tracer.SetPosition(1, v))
-            .SetUpdate(true) 
+        // ... (Toàn bộ phần code còn lại của hàm ApplyTracerFeel giữ nguyên) ...
+
+        // 1. Đạn bay đi (Phần đầu tia đạn kéo dài tới điểm end)
+        float travelTime = 0.02f;
+        DOVirtual.Vector3(start, end, travelTime, v => tracer.SetPosition(1, v))
+            .SetUpdate(true)
             .OnComplete(() => {
-              
+                // --- ĐẠN THẬT LÀ ĐÂY: Khi tia đạn chạm đích mới tính sát thương ---
+                CheckHitAtPoint(end, damage, (end - start).normalized * knockbackPower);
+
+                // 2. Phần đuôi tia đạn co lại (Tia đạn biến mất)
                 DOVirtual.Vector3(start, end, 0.03f, v => tracer.SetPosition(0, v))
                     .SetUpdate(true)
                     .OnComplete(() => Destroy(tracer.gameObject));
             });
+    }
+
+    private void CheckHitAtPoint(Vector3 point, float damage, Vector2 knockback)
+    {
+        // Quét một vòng tròn nhỏ tại điểm cuối của tia đạn để tìm quái
+        Collider2D hit = Physics2D.OverlapCircle(point, 0.1f, LayerMask.GetMask("Enemy"));
+        if (hit != null)
+        {
+            EnemyController enemy = hit.GetComponent<EnemyController>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(damage, knockback);
+            }
+        }
     }
 
     private void ApplyDamageFeel()
