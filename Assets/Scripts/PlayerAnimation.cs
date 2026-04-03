@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 [RequireComponent(typeof(PlayerController))]
 public class PlayerAnimation : MonoBehaviour
@@ -36,16 +36,22 @@ public class PlayerAnimation : MonoBehaviour
 
     private void TriggerJump()
     {
+        anim.ResetTrigger("doLand");
+        anim.ResetTrigger("doRoll"); // Dọn rác
         anim.SetTrigger("doJump");
     }
 
     private void TriggerRoll()
     {
+        anim.ResetTrigger("doJump"); // Dọn rác
+        anim.ResetTrigger("doLand"); // Dọn rác
         anim.SetTrigger("doRoll");
     }
 
     private void TriggerLand()
     {
+        anim.ResetTrigger("doJump");
+        anim.ResetTrigger("doRoll"); // Dọn rác
         anim.SetTrigger("doLand");
     }
 }
