@@ -48,6 +48,7 @@ public class PlayerFeedback : MonoBehaviour
         playerController.OnDrawTracer += ApplyTracerFeel; // ve vệt dan
         playerController.OnWeaponSwitched += ApplyWeaponSwitch; // doi sung
         playerController.OnThrowGrenade += ApplyThrowFeel;
+        playerController.OnRoll += ApplyRollFeel;
 
     }
 
@@ -60,6 +61,7 @@ public class PlayerFeedback : MonoBehaviour
         playerController.OnDrawTracer -= ApplyTracerFeel;
         playerController.OnWeaponSwitched -= ApplyWeaponSwitch;
         playerController.OnThrowGrenade -= ApplyThrowFeel;
+        playerController.OnRoll -= ApplyRollFeel;
     }
 
     void Start()
@@ -73,6 +75,9 @@ public class PlayerFeedback : MonoBehaviour
         {
             // kill tween dang chay de tranh loi hinh anh
             weaponSpriteRenderer.transform.DOKill();
+
+            // FIX LỖI KÉO GIÃN VĨNH VIỄN: Luôn trả về scale gốc (1, 1, 1) trước khi tạo hiệu ứng co giãn mới
+            weaponSpriteRenderer.transform.localScale = Vector3.one;
 
             weaponSpriteRenderer.sprite = newSprite;
 
@@ -214,6 +219,20 @@ public class PlayerFeedback : MonoBehaviour
         }
 
         if (impulseSource != null) impulseSource.GenerateImpulse(1.0f);
+    }
+
+    private void ApplyRollFeel()
+    {
+        // 1. Squash & Stretch mạnhtạo cảm giác lướt đi rất nhanh
+        transform.DOKill();
+
+        // Bóp bẹp dẹt ra theo chiều ngang, lùn đi theo chiều dọc
+        transform.DOScale(new Vector3(1.5f, 0.5f, 1f), 0.1f)
+            .OnComplete(() => transform.DOScale(Vector3.one, 0.25f).SetEase(Ease.OutBack));
+
+        // 2. Chạy hạt bụi như lúc nhảy
+        if (jumpDust != null) jumpDust.Play();
+        if (landDust != null) landDust.Play();
     }
 
     private IEnumerator HitStopRoutine(float duration)

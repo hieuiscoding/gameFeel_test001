@@ -1,27 +1,36 @@
 ﻿using UnityEngine;
 using System;
+using DG.Tweening; // Nhớ thêm dòng này nếu chưa có
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
 {
     public event Action OnJump;
     public event Action OnLand;
-    public event Action OnShoot; // phat am thanh, flash
+    public event Action OnShoot;
     public event Action OnTakeDamage;
-    // Thêm thông tin vào event: startPos, endPos, damage, knockback
     public event Action<Vector3, Vector3, float, float> OnDrawTracer;
-    public event Action<Sprite> OnWeaponSwitched; // doi hinh anh sung
-    public event Action OnThrowGrenade; // them event de feedback lang nghe
+    public event Action<Sprite> OnWeaponSwitched;
+    public event Action OnThrowGrenade;
+    public event Action OnRoll; // Event cho feedback lộn nhào
 
     [Header("auto aim settings")]
-    [SerializeField] private float targetRange = 10f; // tầm quét quái
-    [SerializeField] private Transform weaponPivot; // cái pivot bọc ngoài cái súng để xoay
+    [SerializeField] private float targetRange = 10f;
+    [SerializeField] private Transform weaponPivot;
     private Transform currentTarget;
 
     [Header("movement settings")]
     [SerializeField] private float moveSpeed = 8f;
     [SerializeField] private float jumpForce = 15f;
     [SerializeField] private float acceleration = 10f;
+
+    [Header("roll/dodge settings")]
+    [SerializeField] private float rollDistance = 6f; // Khoảng cách trượt
+    [SerializeField] private float rollDuration = 0.35f; // Thời gian trượt
+    [SerializeField] private float rollCooldown = 1f; // Thời gian hồi chiêu
+
+    // Biến public để sau này Enemy đánh có thể check xem có đang né không
+    public bool isInvincible = false;
 
     [Header("platformer logic")]
     [SerializeField] private float fallMultiplier = 2.5f;
@@ -47,11 +56,13 @@ public class PlayerController : MonoBehaviour
     private int currentWeaponIndex = 0;
     private float nextFireTime = 0f;
     private float nextGrenadeTime = 0f;
+    private float nextRollTime = 0f;
 
     private Rigidbody2D rb;
     private float horizontalInput;
     private bool isGrounded;
     private bool wasGrounded;
+    private bool isRolling = false; // Trạng thái đang lộn
 
     private float coyoteTimeCounter;
     private float jumpBufferCounter;
@@ -63,7 +74,6 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
 
-        // set vu khi mac dinh luc moi vao game
         if (weapons != null && weapons.Length > 0 && weapons[0] != null)
         {
             OnWeaponSwitched?.Invoke(weapons[0].weaponSprite);
@@ -72,33 +82,44 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        GetInput();
         CheckGrounded();
         UpdateTimers();
         FindNearestTarget();
 
-        // FIX LỖI: Bắt buộc phải xoay súng TRƯỚC khi xử lý nút bấm bắn!
-        RotateWeapon();
+        // CHỈ cho phép di chuyển, ngắm bắn khi KHÔNG phải đang lộn
+        if (!isRolling)
+        {
+            GetInput();
+            RotateWeapon();
+            HandleActionInputs();
+        }
 
-        HandleActionInputs();
         ApplySmartGravity();
     }
 
     private void FindNearestTarget()
     {
+        // Quét tất cả Collider trong tầm bắn
         Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, targetRange, enemyLayer);
-        float closestDist = Mathf.Infinity;
+        float closestSqDist = Mathf.Infinity; // Dùng bình phương khoảng cách để tối ưu hơn
         Transform closestEnemy = null;
 
         foreach (var enemy in enemies)
         {
-            float dist = Vector2.Distance(transform.position, enemy.transform.position);
-            if (dist < closestDist)
+            // --- ĐIỀU KIỆN QUAN TRỌNG NHẤT KHI DÙNG POOL ---
+            // Chỉ xử lý nếu quái đang hoạt động (không nằm trong Pool)
+            if (!enemy.gameObject.activeInHierarchy) continue;
+
+            // Tính bình phương khoảng cách (đỡ tốn CPU hơn dùng Vector2.Distance)
+            float sqDist = (transform.position - enemy.transform.position).sqrMagnitude;
+
+            if (sqDist < closestSqDist)
             {
-                closestDist = dist;
+                closestSqDist = sqDist;
                 closestEnemy = enemy.transform;
             }
         }
+
         currentTarget = closestEnemy;
     }
 
@@ -129,7 +150,8 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        HandleMovement();
+        // Khóa phím di chuyển ngang khi đang lộn
+        if (!isRolling) HandleMovement();
     }
 
     private void GetInput()
@@ -167,6 +189,14 @@ public class PlayerController : MonoBehaviour
 
     private void HandleActionInputs()
     {
+        // XỬ LÝ DODGE / ROLL: Đã bỏ && isGrounded để cho phép Air Dash trên không
+        if ((Input.GetKeyDown(KeyCode.LeftControl) || Input.GetKeyDown(KeyCode.RightControl))
+            && Time.time >= nextRollTime)
+        {
+            ExecuteRoll();
+            return; // Đang lộn thì cấm bắn hay nhảy
+        }
+
         if (jumpBufferCounter > 0f && coyoteTimeCounter > 0f)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
@@ -189,6 +219,39 @@ public class PlayerController : MonoBehaviour
             OnTakeDamage?.Invoke();
         }
     }
+
+    private void ExecuteRoll()
+    {
+        isRolling = true;
+        isInvincible = true; // Bật i-frames
+        nextRollTime = Time.time + rollCooldown;
+
+        // TẮT va chạm giữa Player và Enemy
+        int playerLayerIdx = gameObject.layer;
+        int enemyLayerIdx = LayerMask.NameToLayer("Enemy");
+        if (enemyLayerIdx != -1) Physics2D.IgnoreLayerCollision(playerLayerIdx, enemyLayerIdx, true);
+
+        // Hướng lộn: LUÔN NGƯỢC LẠI hướng đang quay mặt/ngắm bắn
+        float rollDir = -faceDir;
+
+        // Dùng DOVirtual để tween Velocity từ (tốc độ cao) -> 0. 
+        // Phép toán distance/duration * 1.5f giúp tạo đà vọt mạnh lúc đầu và hãm lại lúc sau.
+        float startSpeed = (rollDistance / rollDuration) * 1.5f;
+
+        DOVirtual.Float(startSpeed, 0f, rollDuration, v => {
+            if (isRolling) rb.linearVelocity = new Vector2(v * rollDir, 0f); // khóa trục Y (0f) để trượt trên đất phẳng lỳ
+        }).SetEase(Ease.OutCubic).OnComplete(() => {
+            isRolling = false;
+            isInvincible = false; // Tắt i-frames
+
+            // BẬT lại va chạm bình thường
+            if (enemyLayerIdx != -1) Physics2D.IgnoreLayerCollision(playerLayerIdx, enemyLayerIdx, false);
+        });
+
+        OnRoll?.Invoke();
+    }
+
+    // ... (CÁC HÀM CÒN LẠI NHƯ HandleWeaponSwitch, ExecuteShoot, ExecuteThrowGrenade, ApplySmartGravity GIỮ NGUYÊN) ...
 
     private void HandleWeaponSwitch()
     {
@@ -220,18 +283,10 @@ public class PlayerController : MonoBehaviour
 
     private void ExecuteShoot(WeaponData weapon)
     {
-        // FIX LỖI CAO CẤP: Dùng toán học tính thẳng đường đạn vào quái, bỏ qua hierarchy
         Vector3 shootDirBase;
-        if (currentTarget != null)
-        {
-            shootDirBase = (currentTarget.position - shootPoint.position).normalized;
-        }
-        else
-        {
-            shootDirBase = Vector3.right * faceDir;
-        }
+        if (currentTarget != null) shootDirBase = (currentTarget.position - shootPoint.position).normalized;
+        else shootDirBase = Vector3.right * faceDir;
 
-        // Ép xoay nòng súng để Muzzle Flash và Light luôn phụt ra chuẩn hướng đạn
         float exactAngle = Mathf.Atan2(shootDirBase.y, shootDirBase.x) * Mathf.Rad2Deg;
         shootPoint.rotation = Quaternion.Euler(0, 0, exactAngle);
 
@@ -245,10 +300,7 @@ public class PlayerController : MonoBehaviour
         for (int i = 0; i < weapon.pelletsCount; i++)
         {
             float angleOffset = 0f;
-            if (weapon.pelletsCount > 1)
-            {
-                angleOffset = UnityEngine.Random.Range(-weapon.spreadAngle, weapon.spreadAngle);
-            }
+            if (weapon.pelletsCount > 1) angleOffset = UnityEngine.Random.Range(-weapon.spreadAngle, weapon.spreadAngle);
 
             Vector3 shootDir = Quaternion.Euler(0, 0, angleOffset) * shootDirBase;
             Vector3 randomOffset = transform.up * UnityEngine.Random.Range(-weapon.parallelSpread, weapon.parallelSpread);
@@ -257,17 +309,9 @@ public class PlayerController : MonoBehaviour
 
             RaycastHit2D hit = Physics2D.Raycast(startPos, shootDir, 15f, enemyLayer);
 
-            if (hit.collider != null)
-            {
-                endPos = hit.point;
-                // ĐÃ XÓA GỌI TAKE_DAMAGE Ở ĐÂY ĐỂ TRÁNH TRỪ MÁU 2 LẦN
-            }
-            else
-            {
-                endPos = startPos + (shootDir * 15f);
-            }
+            if (hit.collider != null) endPos = hit.point;
+            else endPos = startPos + (shootDir * 15f);
 
-            // Giao phó toàn bộ việc tính toán sát thương cho Tracer bên Feedback
             OnDrawTracer?.Invoke(startPos, endPos, weapon.damage, weapon.knockbackPower);
         }
 
@@ -283,12 +327,9 @@ public class PlayerController : MonoBehaviour
 
         if (rbGrenade != null)
         {
-            // Ném lựu đạn theo hướng mục tiêu luôn cho ngầu
             Vector2 aimDir = (currentTarget != null) ? (currentTarget.position - shootPoint.position).normalized : Vector2.right * faceDir;
-
             Vector2 force = new Vector2(aimDir.x * throwForce, aimDir.y * throwForce + throwUpwardForce);
             rbGrenade.AddForce(force, ForceMode2D.Impulse);
-
             rbGrenade.AddTorque(-faceDir * 15f, ForceMode2D.Impulse);
         }
 
@@ -297,13 +338,7 @@ public class PlayerController : MonoBehaviour
 
     private void ApplySmartGravity()
     {
-        if (rb.linearVelocity.y < 0)
-        {
-            rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (fallMultiplier - 1) * Time.deltaTime;
-        }
-        else if (rb.linearVelocity.y > 0 && !Input.GetKey(KeyCode.Space))
-        {
-            rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (lowJumpMultiplier - 1) * Time.deltaTime;
-        }
+        if (rb.linearVelocity.y < 0) rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (fallMultiplier - 1) * Time.deltaTime;
+        else if (rb.linearVelocity.y > 0 && !Input.GetKey(KeyCode.Space)) rb.linearVelocity += Vector2.up * Physics2D.gravity.y * (lowJumpMultiplier - 1) * Time.deltaTime;
     }
 }

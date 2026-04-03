@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Shotgun
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   weaponName: Shotgun
-  weaponSprite: {fileID: 2856697167197768553, guid: 6a2351eaa1d6f874e8f1b633f6b965d4, type: 3}
+  weaponSprite: {fileID: 21300000, guid: d36501c146aa66342817cd7d6d3d803a, type: 3}
   isAutomatic: 0
   fireRate: 0.2
   pelletsCount: 6
@@ -22,3 +22,5 @@ MonoBehaviour:
   knockbackPower: 15
   parallelSpread: 0.1
   playerKickback: 10
+  shootSound: {fileID: 0}
+  shootVolume: 0.8

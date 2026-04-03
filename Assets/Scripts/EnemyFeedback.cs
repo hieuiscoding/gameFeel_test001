@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using DG.Tweening;
 
 [RequireComponent(typeof(EnemyController))]
@@ -24,6 +24,11 @@ public class EnemyFeedback : MonoBehaviour
 
     [Header("dash warning")]
     [SerializeField] private Color warningColor = Color.yellow; // mau canh bao rinh moi
+
+    [Header("loot")]
+    [SerializeField] private GameObject coinPrefab;
+    [SerializeField] private int minCoins = 1;
+    [SerializeField] private int maxCoins = 3;
 
     private EnemyController enemyController;
     private Color originalColor;
@@ -155,12 +160,33 @@ public class EnemyFeedback : MonoBehaviour
             Destroy(tempAudio, deathSound.length); // huy sau khi chay xong am thanh
         }
 
-        // 1. tao ra ban sao cua prefab vfx tai vi tri quai chet
         if (deathVFX != null)
         {
+            // Thay vì Destroy, nếu bác có ParticlePool thì dùng, còn không thì giữ nguyên Instantiate 
+            // nhưng nhớ Check null cho kỹ
             ParticleSystem fx = Instantiate(deathVFX, transform.position, Quaternion.identity);
             fx.Play();
-            Destroy(fx.gameObject, 2f); // xoa ban sao nay sau 2s
+            Destroy(fx.gameObject, 2f);
+        }
+
+        // 2. LOGIC NHẢ ĐỒNG XU (SỬA LẠI CHUẨN)
+        if (coinPrefab != null && CoinPool.Instance != null)
+        {
+            int coinCount = UnityEngine.Random.Range(minCoins, maxCoins + 1);
+            for (int i = 0; i < coinCount; i++)
+            {
+                // CHỈ GỌI MỘT DÒNG DUY NHẤT NÀY
+                CoinPool.Instance.Spawn(transform.position);
+            }
+        }
+        else if (coinPrefab != null)
+        {
+            // Fallback nếu bác quên chưa đặt CoinPool vào Scene
+            int coinCount = UnityEngine.Random.Range(minCoins, maxCoins + 1);
+            for (int i = 0; i < coinCount; i++)
+            {
+                Instantiate(coinPrefab, transform.position, Quaternion.identity);
+            }
         }
 
         // 2. bop bep di sat xuong dat
