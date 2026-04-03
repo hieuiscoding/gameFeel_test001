@@ -21,7 +21,7 @@ public class PlayerFeedback : MonoBehaviour
     [SerializeField] private ParticleSystem landDust;
     [SerializeField] private ParticleSystem muzzleFlash;
     [SerializeField] private ParticleSystem shellFX;
-
+    private Vector3 baseWeaponPos;
     [Header("bullet tracer")]
     [SerializeField] private LineRenderer bulletTracerPrefab; 
 
@@ -67,6 +67,7 @@ public class PlayerFeedback : MonoBehaviour
     void Start()
     {
         if (bloodOverlay != null) bloodOverlay.alpha = 0f;
+        if (weaponPivot != null) baseWeaponPos = weaponPivot.localPosition;
     }
 
     private void ApplyWeaponSwitch(Sprite newSprite)
@@ -88,30 +89,30 @@ public class PlayerFeedback : MonoBehaviour
 
     private void ApplyJumpFeel()
     {
-        transform.DOKill();
-        transform.DOScale(new Vector3(0.6f, 1.4f, 1f), 0.15f).OnComplete(() => transform.DOScale(Vector3.one, 0.1f));
+        // Đã có Animator lo dáng nhảy, feedback chỉ cần nhả bụi
         if (jumpDust != null) jumpDust.Play();
     }
 
     private void ApplyLandFeel()
     {
-        transform.DOKill();
-        transform.DOScale(new Vector3(1.3f, 0.7f, 1f), 0.1f).OnComplete(() => transform.DOScale(Vector3.one, 0.1f));
+        // Đã có Animator lo dáng đáp đất, feedback chỉ gọi bụi
         if (landDust != null) landDust.Play();
     }
+
+
 
     private void ApplyShootFeel()
     {
         if (weaponPivot != null)
         {
             weaponPivot.DOKill();
+            weaponPivot.localPosition = baseWeaponPos;
 
-            // FIX: Chỉ reset vị trí tịnh tiến (Move), TUYỆT ĐỐI KHÔNG reset góc xoay (Rotation)
-            weaponPivot.localPosition = Vector3.zero;
-
-            weaponPivot.DOLocalMoveX(-0.5f, 0.05f)
+            // SỬA Ở ĐÂY: Thay số -0.5f thành -0.1f hoặc -0.05f 
+            // Giảm cả thời gian giật (0.05f -> 0.02f) để súng nảy nhanh hơn khi sấy
+            weaponPivot.DOLocalMoveX(baseWeaponPos.x - 0.05f, 0.02f)
                 .SetEase(Ease.OutExpo)
-                .OnComplete(() => weaponPivot.DOLocalMoveX(0f, 0.2f));
+                .OnComplete(() => weaponPivot.DOLocalMoveX(baseWeaponPos.x, 0.1f));
         }
 
         if (impulseSource != null) impulseSource.GenerateImpulse(0.2f);
@@ -147,14 +148,13 @@ public class PlayerFeedback : MonoBehaviour
         {
             weaponPivot.DOKill();
 
-            // FIX: Bỏ reset góc xoay
-            weaponPivot.localPosition = Vector3.zero;
+            // SỬA DÒNG NÀY: Trả về vị trí gốc
+            weaponPivot.localPosition = baseWeaponPos;
 
-            weaponPivot.DOLocalMoveY(0.4f, 0.1f)
+            weaponPivot.DOLocalMoveY(baseWeaponPos.y + 0.4f, 0.1f)
                 .SetEase(Ease.OutExpo)
-                .OnComplete(() => weaponPivot.DOLocalMoveY(0f, 0.2f));
+                .OnComplete(() => weaponPivot.DOLocalMoveY(baseWeaponPos.y, 0.2f));
 
-            // Chỉ cộng dồn góc xoay nhẹ để tạo cảm giác vung tay, không bẻ gãy hệ thống Aim
             weaponPivot.DOPunchRotation(new Vector3(0, 0, 30f), 0.3f, 10, 1f);
         }
     }
@@ -223,14 +223,7 @@ public class PlayerFeedback : MonoBehaviour
 
     private void ApplyRollFeel()
     {
-        // 1. Squash & Stretch mạnhtạo cảm giác lướt đi rất nhanh
-        transform.DOKill();
-
-        // Bóp bẹp dẹt ra theo chiều ngang, lùn đi theo chiều dọc
-        transform.DOScale(new Vector3(1.5f, 0.5f, 1f), 0.1f)
-            .OnComplete(() => transform.DOScale(Vector3.one, 0.25f).SetEase(Ease.OutBack));
-
-        // 2. Chạy hạt bụi như lúc nhảy
+        // Animator đã lo lộn vòng, ở đây mình tạo cảm giác lướt gió bằng cách gọi cả 2 bụi
         if (jumpDust != null) jumpDust.Play();
         if (landDust != null) landDust.Play();
     }

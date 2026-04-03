@@ -1,0 +1,379 @@
+fileFormatVersion: 2
+guid: 7b249ad2089d34046983f1d1b36ccda1
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -8602277548311169374
+    second: stickman_base_0
+  - first:
+      213: 6497687102725396905
+    second: stickman_base_1
+  - first:
+      213: 9200286431734752989
+    second: stickman_base_2
+  - first:
+      213: -9013091623766805311
+    second: stickman_base_3
+  - first:
+      213: 7927833783000022218
+    second: stickman_base_4
+  - first:
+      213: 7441717670009466862
+    second: stickman_base_5
+  - first:
+      213: -3608166570772918033
+    second: stickman_base_6
+  - first:
+      213: -7204500604408943204
+    second: stickman_base_7
+  - first:
+      213: -2818941229512646935
+    second: stickman_base_8
+  - first:
+      213: -4135455916750267392
+    second: stickman_base_9
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 300
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: stickman_base_0
+      rect:
+        serializedVersion: 2
+        x: 105
+        y: 811
+        width: 264
+        height: 263
+      alignment: 9
+      pivot: {x: 0.48383367, y: 0.05643663}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2a6389985229e9880800000000000000
+      internalID: -8602277548311169374
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: stickman_base_1
+      rect:
+        serializedVersion: 2
+        x: 443
+        y: 743
+        width: 140
+        height: 304
+      alignment: 9
+      pivot: {x: 0.48983896, y: 0.0507425}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9a995936efb6c2a50800000000000000
+      internalID: 6497687102725396905
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: stickman_base_2
+      rect:
+        serializedVersion: 2
+        x: 50
+        y: 644
+        width: 245
+        height: 64
+      alignment: 9
+      pivot: {x: 0.05868848, y: 0.4777708}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dd66563b3cbfdaf70800000000000000
+      internalID: 9200286431734752989
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: stickman_base_3
+      rect:
+        serializedVersion: 2
+        x: 368
+        y: 644
+        width: 245
+        height: 64
+      alignment: 9
+      pivot: {x: 0.076108724, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1c4b45debe01be280800000000000000
+      internalID: -9013091623766805311
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: stickman_base_4
+      rect:
+        serializedVersion: 2
+        x: 50
+        y: 451
+        width: 223
+        height: 149
+      alignment: 9
+      pivot: {x: 0.08532653, y: 0.8246313}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: accbe0a72d2550e60800000000000000
+      internalID: 7927833783000022218
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: stickman_base_5
+      rect:
+        serializedVersion: 2
+        x: 338
+        y: 464
+        width: 229
+        height: 136
+      alignment: 9
+      pivot: {x: 0.1272535, y: 0.19664113}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eef69affaca464760800000000000000
+      internalID: 7441717670009466862
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: stickman_base_6
+      rect:
+        serializedVersion: 2
+        x: 578
+        y: 342
+        width: 68
+        height: 229
+      alignment: 9
+      pivot: {x: 0.39539382, y: 0.9100211}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fe014aaee973dedc0800000000000000
+      internalID: -3608166570772918033
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: stickman_base_7
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 32
+        width: 112
+        height: 308
+      alignment: 9
+      pivot: {x: 0.6524266, y: 0.9018522}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c9d2e121fd8740c90800000000000000
+      internalID: -7204500604408943204
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: stickman_base_8
+      rect:
+        serializedVersion: 2
+        x: 193
+        y: 187
+        width: 88
+        height: 227
+      alignment: 9
+      pivot: {x: 0.66166514, y: 0.8760303}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9ee123c13eb11e8d0800000000000000
+      internalID: -2818941229512646935
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: stickman_base_9
+      rect:
+        serializedVersion: 2
+        x: 452
+        y: 32
+        width: 81
+        height: 311
+      alignment: 9
+      pivot: {x: 0.4999996, y: 0.9116991}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 00c10d911c8eb96c0800000000000000
+      internalID: -4135455916750267392
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 54f6087ef5f547c458a6c442d7ae916a
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      stickman_base_0: -8602277548311169374
+      stickman_base_1: 6497687102725396905
+      stickman_base_2: 9200286431734752989
+      stickman_base_3: -9013091623766805311
+      stickman_base_4: 7927833783000022218
+      stickman_base_5: 7441717670009466862
+      stickman_base_6: -3608166570772918033
+      stickman_base_7: -7204500604408943204
+      stickman_base_8: -2818941229512646935
+      stickman_base_9: -4135455916750267392
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

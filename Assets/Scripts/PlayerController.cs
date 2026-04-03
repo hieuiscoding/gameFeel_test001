@@ -69,7 +69,7 @@ public class PlayerController : MonoBehaviour
     private float faceDir = 1f;
 
     public Vector2 Velocity => rb.linearVelocity;
-
+    public float CurrentInput => horizontalInput;
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
