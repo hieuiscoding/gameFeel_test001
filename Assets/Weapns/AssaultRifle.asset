@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: AssaultRifle
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   weaponName: AssaultRifle
-  weaponSprite: {fileID: 21300000, guid: ba4ede73186bd6140ba7b9f264782b25, type: 3}
+  weaponSprite: {fileID: 21300000, guid: df6a04cdc2572db4699004a77afa0d96, type: 3}
   isAutomatic: 1
   fireRate: 0.1
   pelletsCount: 1
@@ -23,4 +23,4 @@ MonoBehaviour:
   parallelSpread: 0.2
   playerKickback: 3
   shootSound: {fileID: 8300000, guid: 8c0fe479f4a95624c9e96f8b39f55df7, type: 3}
-  shootVolume: 0.8
+  shootVolume: 0.731
