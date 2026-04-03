@@ -20,4 +20,9 @@ public class WeaponData : ScriptableObject
     public float knockbackPower = 15f;
     public float parallelSpread = 0.2f;
     public float playerKickback = 0f; // luc day lui nguoi choi 
+
+    // THÊM PHẦN AUDIO VÀO ĐÂY
+    [Header("audio")]
+    public AudioClip shootSound; // file am thanh tieng sung
+    [Range(0f, 1f)] public float shootVolume = 0.8f; // am luong rieng cho tung loai
 }
