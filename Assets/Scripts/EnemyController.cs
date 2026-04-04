@@ -7,26 +7,17 @@ public class EnemyController : MonoBehaviour
     public event Action OnTakeDamage;
     public event Action OnDie;
     public event Action OnAnticipate;
+    public event Action OnDash;
 
     public enum EnemyState { chase, anticipate, dash, cooldown }
     public EnemyState currentState = EnemyState.chase;
 
-    [Header("stats")]
-    [SerializeField] private float maxHealth = 3f;
-    [SerializeField] private float moveSpeed = 3f;
-
-    [Header("dash attack")]
-    [SerializeField] private float dashRange = 4f;
-    [SerializeField] private float dashSpeed = 12f;
-    [SerializeField] private float anticipateTime = 0.3f;
-    [SerializeField] private float dashDuration = 0.25f;
-    [SerializeField] private float cooldownTime = 1f;
+    // --- SỬ DỤNG SCRIPTABLE OBJECT Ở ĐÂY ---
+    [Header("stats configuration")]
+    [SerializeField] private EnemyStatsSO stats;
 
     private float currentHealth;
-
-    // dung static de tim player 1 lan duy nhat cho tat ca quai
     private static Transform playerRef;
-
     private Rigidbody2D rb;
 
     private float stunTimer;
@@ -39,8 +30,6 @@ public class EnemyController : MonoBehaviour
     private float dashDirection;
     private int originalLayer;
     private int corpseLayer;
-
-    // bien thay the cho invoke()
     private float despawnTimer;
 
     void Awake()
@@ -52,7 +41,9 @@ public class EnemyController : MonoBehaviour
 
     void Start()
     {
-        currentHealth = maxHealth;
+        // lay chi so tu SO
+        if (stats != null) currentHealth = stats.maxHealth;
+        else Debug.LogError("Enemy thieu file Stats SO!");
 
         if (playerRef == null)
         {
@@ -63,23 +54,16 @@ public class EnemyController : MonoBehaviour
 
     void Update()
     {
-        // dung update de dem gio huy xac thay vi invoke
-        if (isDead)
+        if (isDead && despawnTimer > 0)
         {
-            if (despawnTimer > 0)
-            {
-                despawnTimer -= Time.deltaTime;
-                if (despawnTimer <= 0)
-                {
-                    Despawn();
-                }
-            }
+            despawnTimer -= Time.deltaTime;
+            if (despawnTimer <= 0) Despawn();
         }
     }
 
     void FixedUpdate()
     {
-        if (isDead || playerRef == null) return;
+        if (isDead || playerRef == null || stats == null) return;
 
         if (stunTimer > 0)
         {
@@ -100,12 +84,12 @@ public class EnemyController : MonoBehaviour
         switch (currentState)
         {
             case EnemyState.chase:
-                rb.linearVelocity = new Vector2(dir * moveSpeed, rb.linearVelocity.y);
-                if (distToPlayer <= dashRange)
+                rb.linearVelocity = new Vector2(dir * stats.moveSpeed, rb.linearVelocity.y);
+                if (distToPlayer <= stats.dashRange)
                 {
                     rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
                     currentState = EnemyState.anticipate;
-                    stateTimer = anticipateTime;
+                    stateTimer = stats.anticipateTime;
                     OnAnticipate?.Invoke();
                 }
                 break;
@@ -116,18 +100,19 @@ public class EnemyController : MonoBehaviour
                 if (stateTimer <= 0)
                 {
                     currentState = EnemyState.dash;
-                    stateTimer = dashDuration;
+                    stateTimer = stats.dashDuration;
                     dashDirection = dir;
+                    OnDash?.Invoke();
                 }
                 break;
 
             case EnemyState.dash:
-                rb.linearVelocity = new Vector2(dashDirection * dashSpeed, rb.linearVelocity.y);
+                rb.linearVelocity = new Vector2(dashDirection * stats.dashSpeed, rb.linearVelocity.y);
                 stateTimer -= Time.fixedDeltaTime;
                 if (stateTimer <= 0)
                 {
                     currentState = EnemyState.cooldown;
-                    stateTimer = cooldownTime;
+                    stateTimer = stats.cooldownTime;
                 }
                 break;
 
@@ -162,26 +147,20 @@ public class EnemyController : MonoBehaviour
         currentHealth -= damage;
         stunTimer = 0.2f;
 
-        if (currentState != EnemyState.cooldown)
-        {
-            currentState = EnemyState.chase;
-        }
+        if (currentState != EnemyState.cooldown) currentState = EnemyState.chase;
 
         OnTakeDamage?.Invoke();
 
-        if (currentHealth <= 0)
-        {
-            Die();
-        }
+        if (currentHealth <= 0) Die();
     }
 
     public void ResetEnemy()
     {
         isDead = false;
-        currentHealth = maxHealth;
+        if (stats != null) currentHealth = stats.maxHealth;
         currentState = EnemyState.chase;
         stunTimer = 0f;
-        despawnTimer = 0f; // reset timer
+        despawnTimer = 0f;
 
         rb.linearVelocity = Vector2.zero;
         rb.linearDamping = 0f;
@@ -193,22 +172,14 @@ public class EnemyController : MonoBehaviour
     {
         isDead = true;
         OnDie?.Invoke();
-
         gameObject.layer = corpseLayer;
         rb.linearDamping = 15f;
-
-        despawnTimer = 5f; // bat dau dem gio despawn
+        despawnTimer = 5f;
     }
 
     private void Despawn()
     {
-        if (EnemyPool.Instance != null)
-        {
-            EnemyPool.Instance.ReturnToPool(this);
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        if (EnemyPool.Instance != null) EnemyPool.Instance.ReturnToPool(this);
+        else Destroy(gameObject);
     }
 }

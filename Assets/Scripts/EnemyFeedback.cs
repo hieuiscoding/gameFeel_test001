@@ -15,6 +15,14 @@ public class EnemyFeedback : MonoBehaviour
     [SerializeField][Range(0f, 1f)] private float deathSoundVolume = 1f;
     [SerializeField][Range(0f, 1f)] private float deathPitchVariance = 0.2f; // random pitch tren inspector
 
+    [Header("horror sound design")]
+    [SerializeField] private AudioClip[] idleSounds; // tieng ren ri, tho doc
+    [SerializeField] private AudioClip[] anticipateSounds; // tieng ruc rich, be khop
+    [SerializeField] private AudioClip[] dashSounds; // tieng gam thet xuyen thau
+    [SerializeField] private float minIdleSoundInterval = 2f; // thoi gian it nhat de phat tieng
+    [SerializeField] private float maxIdleSoundInterval = 5f; // thoi gian lau nhat de phat tieng
+    private float nextIdleSoundTime;
+
     [Header("hit feel settings")]
     [SerializeField] private Color hitFlashColor = Color.white; // chop trang
     [SerializeField] private float flashDuration = 0.1f;
@@ -33,7 +41,6 @@ public class EnemyFeedback : MonoBehaviour
     [Header("animation")]
     [SerializeField] private Animator anim;
 
-    // --- ĐÂY LÀ PHẦN THÊM MỚI ---
     [Header("POP-OUT MẮT KHI CHẾT")]
     [SerializeField] private SpriteRenderer leftEye; // Sprite mắt trái
     [SerializeField] private SpriteRenderer rightEye; // Sprite mắt phải
@@ -41,19 +48,16 @@ public class EnemyFeedback : MonoBehaviour
     [SerializeField] private float eyeFlyDuration = 0.6f; // Thời gian bay
     [SerializeField] private float eyeArcHeight = 1f; // Độ cao cầu vồng
     [SerializeField] private float eyeFadeDuration = 0.8f; // Thời gian mờ đi
+
     private Vector3 leftEyeStartOffset; // Luu vi tri ban dau
     private Vector3 rightEyeStartOffset;
-    // ----------------------------
+    private Transform leftEyeParent;
+    private Transform rightEyeParent;
+
     [SerializeField] private GameObject headObject;
     private EnemyController enemyController;
     private Color originalColor;
     private float lastHitVfxTime; // luu thoi gian lan cuoi chay hit vfx
-
-    // Khai báo thêm 2 biến này ngay trên hàm Awake
-    private Transform leftEyeParent;
-    private Transform rightEyeParent;
-
-    // them bien vao phan khai bao
     private UnityEngine.Rendering.SortingGroup sortingGroup;
 
     void Awake()
@@ -61,7 +65,6 @@ public class EnemyFeedback : MonoBehaviour
         enemyController = GetComponent<EnemyController>();
         if (anim == null) anim = GetComponentInChildren<Animator>();
 
-        // cache sorting group de khong phai goi lai
         sortingGroup = GetComponent<UnityEngine.Rendering.SortingGroup>();
 
         if (spriteRenderer != null)
@@ -86,19 +89,23 @@ public class EnemyFeedback : MonoBehaviour
         enemyController.OnTakeDamage += ApplyHitFeel;
         enemyController.OnDie += ApplyDieFeel;
         enemyController.OnAnticipate += ApplyWarningFeel;
+        enemyController.OnDash += ApplyDashFeel; // dang ky tieng vo
 
         ResetVisuals();
 
-        // dung bien da cache thay vi get component
         if (sortingGroup != null) sortingGroup.sortingOrder = UnityEngine.Random.Range(0, 1000);
+
+        // dat thoi gian cho tieng ren ri dau tien
+        nextIdleSoundTime = Time.time + UnityEngine.Random.Range(minIdleSoundInterval, maxIdleSoundInterval);
     }
 
     void OnDisable()
     {
         enemyController.OnTakeDamage -= ApplyHitFeel;
         enemyController.OnDie -= ApplyDieFeel;
-        enemyController.OnAnticipate -= ApplyWarningFeel; // huy dang ky event
-        // THÊM ĐOẠN NÀY: Thu hồi mắt về khi quái tắt
+        enemyController.OnAnticipate -= ApplyWarningFeel;
+        enemyController.OnDash -= ApplyDashFeel; // huy dang ky
+
         if (leftEye != null && leftEyeParent != null)
         {
             leftEye.transform.parent = leftEyeParent;
@@ -108,6 +115,21 @@ public class EnemyFeedback : MonoBehaviour
         {
             rightEye.transform.parent = rightEyeParent;
             rightEye.gameObject.SetActive(false);
+        }
+    }
+
+    void Update()
+    {
+        // Phat tieng ren ri ngau nhien khi quai dang ruot duoi
+        if (enemyController == null || enemyController.isDead) return;
+
+        if (enemyController.currentState == EnemyController.EnemyState.chase)
+        {
+            if (Time.time >= nextIdleSoundTime)
+            {
+                PlayRandomSound(idleSounds, 0.6f, 0.15f); // volume nho, pitch bien thien de tao su ghe ron
+                nextIdleSoundTime = Time.time + UnityEngine.Random.Range(minIdleSoundInterval, maxIdleSoundInterval);
+            }
         }
     }
 
@@ -122,9 +144,7 @@ public class EnemyFeedback : MonoBehaviour
 
         if (enemyBody != null)
         {
-            // ---> THÊM ĐÚNG DÒNG NÀY ĐỂ BẬT LẠI CÁI THÂN <---
             enemyBody.gameObject.SetActive(true);
-
             enemyBody.DOKill();
             float currentFaceDir = Mathf.Sign(enemyBody.localScale.x);
             enemyBody.localScale = new Vector3(currentFaceDir, 1f, 1f);
@@ -143,14 +163,10 @@ public class EnemyFeedback : MonoBehaviour
         if (headObject != null) headObject.SetActive(true);
     }
 
-    // Helper method de reset con mat
     private void ResetEye(SpriteRenderer eye, Vector3 startLocalPos)
     {
         eye.DOKill();
-
-        // SỬA DÒNG NÀY: Trả về đúng ông bố đã ghi nhớ, không dùng enemyBody nữa
         eye.transform.parent = (eye == leftEye) ? leftEyeParent : rightEyeParent;
-
         eye.transform.localPosition = startLocalPos;
         eye.transform.localRotation = Quaternion.identity;
         eye.color = Color.white;
@@ -167,6 +183,15 @@ public class EnemyFeedback : MonoBehaviour
             spriteRenderer.color = warningColor;
             spriteRenderer.DOColor(originalColor, 0.3f);
         }
+
+        // Phat tieng lay da (ruc rich, be khop...)
+        PlayRandomSound(anticipateSounds, 0.8f, 0.1f);
+    }
+
+    private void ApplyDashFeel()
+    {
+        // Phat tieng gam thet luc lao di vồ
+        PlayRandomSound(dashSounds, 1f, 0.1f);
     }
 
     private void ApplyHitFeel()
@@ -190,10 +215,15 @@ public class EnemyFeedback : MonoBehaviour
         }
     }
 
+    // --- KHAI BÁO THÊM 2 BIẾN NÀY DƯỚI CÙNG DANH SÁCH BIẾN CỦA BẠN ---
+    private readonly int doDieHash = Animator.StringToHash("doDie");
+    private readonly int deathTypeHash = Animator.StringToHash("DeathType");
+
+    // --- THAY THẾ TOÀN BỘ HÀM ApplyDieFeel BẰNG ĐOẠN NÀY ---
     private void ApplyDieFeel()
     {
         bool isOverkill = UnityEngine.Random.value < 0.3f;
-        // 1. CHẠY AUDIO
+
         if (deathSound != null && AudioManager.Instance != null)
         {
             var opts = new AudioManager.SFXPlayOptions
@@ -211,46 +241,25 @@ public class EnemyFeedback : MonoBehaviour
         }
         else if (deathSound != null)
         {
-            // canh bao: tot nhat la su dung audiomanager hoac audio pool, dung tao thung rac kieu nay
             AudioSource.PlayClipAtPoint(deathSound, transform.position, deathSoundVolume);
         }
 
         if (deathVFX != null && !isOverkill)
         {
-            // thay vi instantiate va destroy, bay gio chi can goi manager
             if (VFXManager.Instance != null)
-            {
                 VFXManager.Instance.PlayVFX(deathVFX, transform.position, Quaternion.identity);
-            }
         }
 
-        // 3. NHẢ COIN
         if (coinPrefab != null && CoinPool.Instance != null)
         {
             int coinCount = UnityEngine.Random.Range(minCoins, maxCoins + 1);
-            for (int i = 0; i < coinCount; i++)
-            {
-                CoinPool.Instance.Spawn(transform.position);
-            }
+            for (int i = 0; i < coinCount; i++) CoinPool.Instance.Spawn(transform.position);
         }
-
-        // ... (phần logic còn lại giữ nguyên) ...
         else if (coinPrefab != null)
         {
             int coinCount = UnityEngine.Random.Range(minCoins, maxCoins + 1);
-            for (int i = 0; i < coinCount; i++)
-            {
-                Instantiate(coinPrefab, transform.position, Quaternion.identity);
-            }
+            for (int i = 0; i < coinCount; i++) Instantiate(coinPrefab, transform.position, Quaternion.identity);
         }
-        if (anim != null)
-        {
-            int randomDeath = UnityEngine.Random.Range(0, 2); // Random ra 0 hoặc 1
-            anim.SetInteger("DeathType", randomDeath);
-            anim.SetTrigger("doDie");
-        }
-        // --- SỬA LẠI LOGIC CHẾT ĐỂ KHÔNG BỊ TRÙNG LẶP ---
-
 
         if (isOverkill)
         {
@@ -259,22 +268,18 @@ public class EnemyFeedback : MonoBehaviour
 
             if (deathVFX != null && VFXManager.Instance != null)
             {
-                // truoc day ban dung main.startSizeMultiplier *= 2f
-                // DỪNG LẠI! Neu ban sua main module cua 1 object trong pool, cac lan sau lay ra no se tiep tuc to gap doi (bug khong lo)
-                // thay vao do, minh dung tham so scaleMultiplier = 2f ma minh da viet san o VFXManager
-
                 ParticleSystem fx = VFXManager.Instance.PlayVFX(deathVFX, transform.position, Quaternion.identity, 1.2f);
-                fx.Emit(30); // xit them hat mau cho dang so
+                fx.Emit(30);
             }
         }
         else
         {
-            // CHẾT BÌNH THƯỜNG: Chạy Random Animation
+            // --- SỬ DỤNG HASH Ở ĐÂY THAY VÌ STRING TỐN TÀI NGUYÊN ---
             if (anim != null)
             {
                 int randomDeath = UnityEngine.Random.Range(0, 2);
-                anim.SetInteger("DeathType", randomDeath);
-                anim.SetTrigger("doDie");
+                anim.SetInteger(deathTypeHash, randomDeath);
+                anim.SetTrigger(doDieHash);
             }
 
             if (headObject != null) headObject.SetActive(false);
@@ -286,42 +291,55 @@ public class EnemyFeedback : MonoBehaviour
             }
         }
 
-        // Bắn mắt
         float faceDir = Mathf.Sign(enemyBody.localScale.x);
         if (leftEye != null) LaunchEye(leftEye, -1f, faceDir);
         if (rightEye != null) LaunchEye(rightEye, 1f, faceDir);
     }
 
-    // --- ĐÂY LÀ PHẦN THÊM MỚI HELPER METHOD ĐỂ BẮN MẮT ---
     private void LaunchEye(SpriteRenderer eye, float directionMultiplier, float facingDirection)
     {
-        // Phải tách mắt ra khỏi cha (enemyBody) để nó bay độc lập, 
-        // không bị ảnh hưởng bởi animation chết hay lật mặt của quái.
         eye.transform.parent = null;
-
-        // Tính toán vị trí hạ cánh (Local Space relative to the start point, converted to World)
-        // Mắt sẽ bay sang bên (theo hướng facingDirection và directionMultiplier) và rớt xuống đất.
         float finalXDir = directionMultiplier * facingDirection;
         Vector3 localStartPos = (eye == leftEye) ? leftEyeStartOffset : rightEyeStartOffset;
-
-        // Vị trí mục tiêu: Bay sang bên eyeFlyDistance mét, rớt xuống đất local level (y=0)
         Vector3 targetLocalPos = localStartPos + new Vector3(finalXDir * eyeFlyDistance, -localStartPos.y, 0f);
-
-        // Convert local target back to a world position *based on where the enemy was when it died*
         Vector3 targetWorldPos = enemyBody.TransformPoint(targetLocalPos);
 
-        // --- XỬ LÝ BAY BẰNG DOTween ---
-        eye.DOKill(); // Dung tweens hien tai
-
-        // 1. DOJump: Bay theo hình cầu vồng mượt mà
+        eye.DOKill();
         eye.transform.DOJump(targetWorldPos, eyeArcHeight, 1, eyeFlyDuration).SetEase(Ease.OutQuad);
-
-        // 2. DORotate: Xoay vòng vòng điên cuồng khi bay
         eye.transform.DORotate(new Vector3(0, 0, UnityEngine.Random.Range(-720f, 720f)), eyeFlyDuration, RotateMode.FastBeyond360);
 
         eye.DOFade(0f, eyeFadeDuration).SetDelay(eyeFlyDuration * 0.5f).OnComplete(() =>
         {
-            eye.gameObject.SetActive(false); // Bay xong, mờ xong thì tắt hẳn đi!
+            eye.gameObject.SetActive(false);
         });
+    }
+
+    // --- HELPER METHOD PHÁT ÂM THANH HOÀI CỔ ---
+    private void PlayRandomSound(AudioClip[] clips, float volume, float pitchVariance)
+    {
+        if (clips == null || clips.Length == 0) return;
+
+        AudioClip clipToPlay = clips[UnityEngine.Random.Range(0, clips.Length)];
+        if (clipToPlay == null) return;
+
+        if (AudioManager.Instance != null)
+        {
+            var opts = new AudioManager.SFXPlayOptions
+            {
+                is2D = true,
+                volume = volume,
+                volumeVariance = 0.05f,
+                pitch = 1f,
+                pitchVariance = pitchVariance,
+                maxDelaySeconds = 0f,
+                minIntervalPerClip = 0.1f,
+                allowStealWhenBusy = true
+            };
+            AudioManager.Instance.PlaySFX(clipToPlay, opts);
+        }
+        else
+        {
+            AudioSource.PlayClipAtPoint(clipToPlay, transform.position, volume);
+        }
     }
 }

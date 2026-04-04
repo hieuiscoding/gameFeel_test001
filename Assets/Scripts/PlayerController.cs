@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 using System;
-using System.Collections.Generic; // Bắt buộc phải có cái này để dùng List
+using System.Collections.Generic;
 using DG.Tweening;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -75,7 +75,6 @@ public class PlayerController : MonoBehaviour
     public Vector2 Velocity => rb.linearVelocity;
     public float CurrentInput => horizontalInput;
 
-    // them bien cache layer vao dau class
     private int enemyLayerIdx;
     private int playerLayerIdx;
 
@@ -112,7 +111,10 @@ public class PlayerController : MonoBehaviour
 
         ApplySmartGravity();
     }
-    private float targetScanTimer = 0f;
+
+    // --- BIẾN ĐẾM GIỜ MỚI, TỐI ƯU HƠN ---
+    private float nextScanTime = 0f;
+
     private void FindNearestTarget()
     {
         // ep quet lai ngay lap tuc neu muc tieu hien tai da chet hoac bi cat vao pool
@@ -120,18 +122,18 @@ public class PlayerController : MonoBehaviour
         {
             if (!currentTarget.gameObject.activeInHierarchy)
             {
-                targetScanTimer = 0f;
+                nextScanTime = 0f;
             }
             else
             {
                 EnemyController currentEc = currentTarget.GetComponent<EnemyController>();
-                if (currentEc != null && currentEc.isDead) targetScanTimer = 0f;
+                if (currentEc != null && currentEc.isDead) nextScanTime = 0f;
             }
         }
 
-        targetScanTimer -= Time.deltaTime;
-        if (targetScanTimer > 0) return; // chua toi luc quet thi bo qua
-        targetScanTimer = 0.15f;
+        // --- SO SÁNH TRỰC TIẾP VỚI TIME.TIME ---
+        if (Time.time < nextScanTime) return; // chua toi luc quet thi bo qua
+        nextScanTime = Time.time + 0.15f;
 
         // doi 2 bien nay xuong day de tiet kiem bo nho tam thoi
         float closestSqDist = Mathf.Infinity;
