@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System;
-using DG.Tweening; // Nhớ thêm dòng này nếu chưa có
+using System.Collections.Generic; // Bắt buộc phải có cái này để dùng List
+using DG.Tweening;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
@@ -12,12 +13,16 @@ public class PlayerController : MonoBehaviour
     public event Action<Vector3, Vector3, float, float> OnDrawTracer;
     public event Action<Sprite> OnWeaponSwitched;
     public event Action OnThrowGrenade;
-    public event Action OnRoll; // Event cho feedback lộn nhào
+    public event Action OnRoll;
 
     [Header("auto aim settings")]
     [SerializeField] private float targetRange = 10f;
     [SerializeField] private Transform weaponPivot;
     private Transform currentTarget;
+
+    // --- BỘ LỌC VÀ DANH SÁCH TÌM KIẾM TỐI ƯU ---
+    private ContactFilter2D enemyFilter;
+    private List<Collider2D> enemyColliders = new List<Collider2D>(20);
 
     [Header("movement settings")]
     [SerializeField] private float moveSpeed = 8f;
@@ -25,11 +30,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float acceleration = 10f;
 
     [Header("roll/dodge settings")]
-    [SerializeField] private float rollDistance = 6f; // Khoảng cách trượt
-    [SerializeField] private float rollDuration = 0.35f; // Thời gian trượt
-    [SerializeField] private float rollCooldown = 1f; // Thời gian hồi chiêu
+    [SerializeField] private float rollDistance = 6f;
+    [SerializeField] private float rollDuration = 0.35f;
+    [SerializeField] private float rollCooldown = 1f;
 
-    // Biến public để sau này Enemy đánh có thể check xem có đang né không
     public bool isInvincible = false;
 
     [Header("platformer logic")]
@@ -62,7 +66,7 @@ public class PlayerController : MonoBehaviour
     private float horizontalInput;
     private bool isGrounded;
     private bool wasGrounded;
-    private bool isRolling = false; // Trạng thái đang lộn
+    private bool isRolling = false;
 
     private float coyoteTimeCounter;
     private float jumpBufferCounter;
@@ -70,9 +74,22 @@ public class PlayerController : MonoBehaviour
 
     public Vector2 Velocity => rb.linearVelocity;
     public float CurrentInput => horizontalInput;
+
+    // them bien cache layer vao dau class
+    private int enemyLayerIdx;
+    private int playerLayerIdx;
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+
+        // cache layer 1 lan duy nhat de toi uu 
+        enemyLayerIdx = LayerMask.NameToLayer("Enemy");
+        playerLayerIdx = gameObject.layer;
+
+        enemyFilter.useLayerMask = true;
+        enemyFilter.SetLayerMask(enemyLayer);
+        enemyFilter.useTriggers = false;
 
         if (weapons != null && weapons.Length > 0 && weapons[0] != null)
         {
@@ -86,7 +103,6 @@ public class PlayerController : MonoBehaviour
         UpdateTimers();
         FindNearestTarget();
 
-        // CHỈ cho phép di chuyển, ngắm bắn khi KHÔNG phải đang lộn
         if (!isRolling)
         {
             GetInput();
@@ -96,21 +112,41 @@ public class PlayerController : MonoBehaviour
 
         ApplySmartGravity();
     }
-
+    private float targetScanTimer = 0f;
     private void FindNearestTarget()
     {
-        // Quét tất cả Collider trong tầm bắn
-        Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, targetRange, enemyLayer);
-        float closestSqDist = Mathf.Infinity; // Dùng bình phương khoảng cách để tối ưu hơn
+        // ep quet lai ngay lap tuc neu muc tieu hien tai da chet hoac bi cat vao pool
+        if (currentTarget != null)
+        {
+            if (!currentTarget.gameObject.activeInHierarchy)
+            {
+                targetScanTimer = 0f;
+            }
+            else
+            {
+                EnemyController currentEc = currentTarget.GetComponent<EnemyController>();
+                if (currentEc != null && currentEc.isDead) targetScanTimer = 0f;
+            }
+        }
+
+        targetScanTimer -= Time.deltaTime;
+        if (targetScanTimer > 0) return; // chua toi luc quet thi bo qua
+        targetScanTimer = 0.15f;
+
+        // doi 2 bien nay xuong day de tiet kiem bo nho tam thoi
+        float closestSqDist = Mathf.Infinity;
         Transform closestEnemy = null;
 
-        foreach (var enemy in enemies)
+        int count = Physics2D.OverlapCircle(transform.position, targetRange, enemyFilter, enemyColliders);
+        for (int i = 0; i < count; i++)
         {
-            // --- ĐIỀU KIỆN QUAN TRỌNG NHẤT KHI DÙNG POOL ---
-            // Chỉ xử lý nếu quái đang hoạt động (không nằm trong Pool)
+            Collider2D enemy = enemyColliders[i];
+
             if (!enemy.gameObject.activeInHierarchy) continue;
 
-            // Tính bình phương khoảng cách (đỡ tốn CPU hơn dùng Vector2.Distance)
+            EnemyController ec = enemy.GetComponent<EnemyController>();
+            if (ec != null && ec.isDead) continue;
+
             float sqDist = (transform.position - enemy.transform.position).sqrMagnitude;
 
             if (sqDist < closestSqDist)
@@ -150,7 +186,6 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        // Khóa phím di chuyển ngang khi đang lộn
         if (!isRolling) HandleMovement();
     }
 
@@ -189,12 +224,11 @@ public class PlayerController : MonoBehaviour
 
     private void HandleActionInputs()
     {
-        // XỬ LÝ DODGE / ROLL: Đã bỏ && isGrounded để cho phép Air Dash trên không
         if ((Input.GetKeyDown(KeyCode.LeftControl) || Input.GetKeyDown(KeyCode.RightControl))
             && Time.time >= nextRollTime)
         {
             ExecuteRoll();
-            return; // Đang lộn thì cấm bắn hay nhảy
+            return;
         }
 
         if (jumpBufferCounter > 0f && coyoteTimeCounter > 0f)
@@ -226,34 +260,22 @@ public class PlayerController : MonoBehaviour
         isInvincible = true;
         nextRollTime = Time.time + rollCooldown;
 
-        // Tắt va chạm với Enemy
-        int playerLayerIdx = gameObject.layer;
-        int enemyLayerIdx = LayerMask.NameToLayer("Enemy");
+        // su dung truc tiep bien int da luu, bo truy van string
         if (enemyLayerIdx != -1) Physics2D.IgnoreLayerCollision(playerLayerIdx, enemyLayerIdx, true);
 
-        // --- LOGIC HƯỚNG DASH MỚI ---
         float rollDir;
+        if (Mathf.Abs(horizontalInput) > 0.1f) rollDir = Mathf.Sign(horizontalInput);
+        else rollDir = -faceDir;
 
-        // Nếu đang bấm phím di chuyển (A hoặc D)
-        if (Mathf.Abs(horizontalInput) > 0.1f)
-        {
-            rollDir = Mathf.Sign(horizontalInput); // Dash theo hướng đang bấm
-        }
-        else
-        {
-            // Nếu đứng yên thì mặc định lộn ngược lại hướng đang ngắm (giữ nguyên logic cũ)
-            rollDir = -faceDir;
-        }
-
-        // Tính toán tốc độ bắt đầu dựa trên quãng đường và thời gian
         float startSpeed = (rollDistance / rollDuration) * 1.5f;
 
-        // Dùng DOVirtual để điều khiển vận tốc
         DOVirtual.Float(startSpeed, 0f, rollDuration, v => {
-            if (isRolling) rb.linearVelocity = new Vector2(v * rollDir, rb.linearVelocity.y); // Giữ nguyên Velocity.y để không bị khựng khi Air Dash
+            if (isRolling) rb.linearVelocity = new Vector2(v * rollDir, rb.linearVelocity.y);
         }).SetEase(Ease.OutCubic).OnComplete(() => {
             isRolling = false;
             isInvincible = false;
+
+            // phuc hoi va cham su dung bien cache
             if (enemyLayerIdx != -1) Physics2D.IgnoreLayerCollision(playerLayerIdx, enemyLayerIdx, false);
         });
 

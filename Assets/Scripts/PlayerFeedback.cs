@@ -64,11 +64,19 @@ public class PlayerFeedback : MonoBehaviour
         playerController.OnRoll -= ApplyRollFeel;
     }
 
+    // them bien luu mask
+    private int enemyLayerMask;
+
     void Start()
     {
+        // luu thong tin layer vao bien ngay tu dau
+        enemyLayerMask = LayerMask.GetMask("Enemy");
+
         if (bloodOverlay != null) bloodOverlay.alpha = 0f;
         if (weaponPivot != null) baseWeaponPos = weaponPivot.localPosition;
     }
+
+
 
     private void ApplyWeaponSwitch(Sprite newSprite)
     {
@@ -195,8 +203,8 @@ public class PlayerFeedback : MonoBehaviour
 
     private void CheckHitAtPoint(Vector3 point, float damage, Vector2 knockback)
     {
-        // Quét một vòng tròn nhỏ tại điểm cuối của tia đạn để tìm quái
-        Collider2D hit = Physics2D.OverlapCircle(point, 0.1f, LayerMask.GetMask("Enemy"));
+        // dung bien da cache thay vi tao mask bang string moi khi ban dan
+        Collider2D hit = Physics2D.OverlapCircle(point, 0.1f, enemyLayerMask);
         if (hit != null)
         {
             EnemyController enemy = hit.GetComponent<EnemyController>();

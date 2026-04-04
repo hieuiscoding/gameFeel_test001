@@ -53,21 +53,26 @@ public class EnemyFeedback : MonoBehaviour
     private Transform leftEyeParent;
     private Transform rightEyeParent;
 
+    // them bien vao phan khai bao
+    private UnityEngine.Rendering.SortingGroup sortingGroup;
+
     void Awake()
     {
         enemyController = GetComponent<EnemyController>();
         if (anim == null) anim = GetComponentInChildren<Animator>();
+
+        // cache sorting group de khong phai goi lai
+        sortingGroup = GetComponent<UnityEngine.Rendering.SortingGroup>();
 
         if (spriteRenderer != null)
         {
             originalColor = spriteRenderer.color;
         }
 
-        // --- SỬA LẠI ĐOẠN NÀY ĐỂ NHỚ ĐÚNG ÔNG BỐ ---
         if (leftEye != null)
         {
             leftEyeStartOffset = leftEye.transform.localPosition;
-            leftEyeParent = leftEye.transform.parent; // Nhớ luôn ông bố hiện tại
+            leftEyeParent = leftEye.transform.parent;
         }
         if (rightEye != null)
         {
@@ -80,10 +85,12 @@ public class EnemyFeedback : MonoBehaviour
     {
         enemyController.OnTakeDamage += ApplyHitFeel;
         enemyController.OnDie += ApplyDieFeel;
-        enemyController.OnAnticipate += ApplyWarningFeel; // dang ky event gong minh
+        enemyController.OnAnticipate += ApplyWarningFeel;
 
-        // moi lan quai duoc bat len tu pool thi tra ve hinh dang ban dau
         ResetVisuals();
+
+        // dung bien da cache thay vi get component
+        if (sortingGroup != null) sortingGroup.sortingOrder = UnityEngine.Random.Range(0, 1000);
     }
 
     void OnDisable()
@@ -91,6 +98,17 @@ public class EnemyFeedback : MonoBehaviour
         enemyController.OnTakeDamage -= ApplyHitFeel;
         enemyController.OnDie -= ApplyDieFeel;
         enemyController.OnAnticipate -= ApplyWarningFeel; // huy dang ky event
+        // THÊM ĐOẠN NÀY: Thu hồi mắt về khi quái tắt
+        if (leftEye != null && leftEyeParent != null)
+        {
+            leftEye.transform.parent = leftEyeParent;
+            leftEye.gameObject.SetActive(false);
+        }
+        if (rightEye != null && rightEyeParent != null)
+        {
+            rightEye.transform.parent = rightEyeParent;
+            rightEye.gameObject.SetActive(false);
+        }
     }
 
     private void ResetVisuals()
@@ -99,28 +117,29 @@ public class EnemyFeedback : MonoBehaviour
         {
             spriteRenderer.DOKill();
             spriteRenderer.color = originalColor;
-            spriteRenderer.DOFade(1f, 0f); // Reset lại độ mờ phòng khi xác chết bị mờ đi
+            spriteRenderer.DOFade(1f, 0f);
         }
 
         if (enemyBody != null)
         {
+            // ---> THÊM ĐÚNG DÒNG NÀY ĐỂ BẬT LẠI CÁI THÂN <---
+            enemyBody.gameObject.SetActive(true);
+
             enemyBody.DOKill();
             float currentFaceDir = Mathf.Sign(enemyBody.localScale.x);
             enemyBody.localScale = new Vector3(currentFaceDir, 1f, 1f);
-            enemyBody.rotation = Quaternion.identity; // Đảm bảo quái đứng thẳng
+            enemyBody.rotation = Quaternion.identity;
         }
 
-        // RESET LẠI ANIMATOR VỀ TRẠNG THÁI GỐC
         if (anim != null)
         {
             anim.Rebind();
             anim.Update(0f);
         }
 
-        // --- ĐÂY LÀ PHẦN THÊM MỚI RESET MẮT (Hệ trọng cho Pooling) ---
         if (leftEye != null) ResetEye(leftEye, leftEyeStartOffset);
         if (rightEye != null) ResetEye(rightEye, rightEyeStartOffset);
-        // THÊM DÒNG NÀY: Lắp lại cái đầu
+
         if (headObject != null) headObject.SetActive(true);
     }
 
@@ -173,6 +192,7 @@ public class EnemyFeedback : MonoBehaviour
 
     private void ApplyDieFeel()
     {
+        bool isOverkill = UnityEngine.Random.value < 0.3f;
         // 1. CHẠY AUDIO
         if (deathSound != null && AudioManager.Instance != null)
         {
@@ -187,29 +207,21 @@ public class EnemyFeedback : MonoBehaviour
                 minIntervalPerClip = 0.15f,
                 allowStealWhenBusy = true
             };
-
             AudioManager.Instance.PlaySFX(deathSound, opts);
         }
         else if (deathSound != null)
         {
-            GameObject tempAudio = new GameObject("temp_death_sound");
-            tempAudio.transform.position = transform.position;
-            AudioSource source = tempAudio.AddComponent<AudioSource>();
-
-            source.clip = deathSound;
-            source.volume = deathSoundVolume;
-            source.pitch = 1f + UnityEngine.Random.Range(-deathPitchVariance, deathPitchVariance);
-            source.Play();
-
-            Destroy(tempAudio, deathSound.length);
+            // canh bao: tot nhat la su dung audiomanager hoac audio pool, dung tao thung rac kieu nay
+            AudioSource.PlayClipAtPoint(deathSound, transform.position, deathSoundVolume);
         }
 
-        // 2. CHẠY VFX (Máu nổ)
-        if (deathVFX != null)
+        if (deathVFX != null && !isOverkill)
         {
-            ParticleSystem fx = Instantiate(deathVFX, transform.position, Quaternion.identity);
-            fx.Play();
-            Destroy(fx.gameObject, 2f);
+            // thay vi instantiate va destroy, bay gio chi can goi manager
+            if (VFXManager.Instance != null)
+            {
+                VFXManager.Instance.PlayVFX(deathVFX, transform.position, Quaternion.identity);
+            }
         }
 
         // 3. NHẢ COIN
@@ -221,6 +233,8 @@ public class EnemyFeedback : MonoBehaviour
                 CoinPool.Instance.Spawn(transform.position);
             }
         }
+
+        // ... (phần logic còn lại giữ nguyên) ...
         else if (coinPrefab != null)
         {
             int coinCount = UnityEngine.Random.Range(minCoins, maxCoins + 1);
@@ -229,25 +243,53 @@ public class EnemyFeedback : MonoBehaviour
                 Instantiate(coinPrefab, transform.position, Quaternion.identity);
             }
         }
+        if (anim != null)
+        {
+            int randomDeath = UnityEngine.Random.Range(0, 2); // Random ra 0 hoặc 1
+            anim.SetInteger("DeathType", randomDeath);
+            anim.SetTrigger("doDie");
+        }
+        // --- SỬA LẠI LOGIC CHẾT ĐỂ KHÔNG BỊ TRÙNG LẶP ---
 
-        // 4. CHẠY ANIMATOR CHẾT (Cái thân gục xuống)
-        if (anim != null) anim.SetTrigger("doDie");
 
-        // 5. MẮT BAY TUNG TOÉ
+        if (isOverkill)
+        {
+            if (enemyBody != null) enemyBody.gameObject.SetActive(false);
+            if (headObject != null) headObject.SetActive(false);
+
+            if (deathVFX != null && VFXManager.Instance != null)
+            {
+                // truoc day ban dung main.startSizeMultiplier *= 2f
+                // DỪNG LẠI! Neu ban sua main module cua 1 object trong pool, cac lan sau lay ra no se tiep tuc to gap doi (bug khong lo)
+                // thay vao do, minh dung tham so scaleMultiplier = 2f ma minh da viet san o VFXManager
+
+                ParticleSystem fx = VFXManager.Instance.PlayVFX(deathVFX, transform.position, Quaternion.identity, 1.2f);
+                fx.Emit(30); // xit them hat mau cho dang so
+            }
+        }
+        else
+        {
+            // CHẾT BÌNH THƯỜNG: Chạy Random Animation
+            if (anim != null)
+            {
+                int randomDeath = UnityEngine.Random.Range(0, 2);
+                anim.SetInteger("DeathType", randomDeath);
+                anim.SetTrigger("doDie");
+            }
+
+            if (headObject != null) headObject.SetActive(false);
+
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.DOKill();
+                spriteRenderer.DOFade(0f, 1f).SetDelay(2f);
+            }
+        }
+
+        // Bắn mắt
         float faceDir = Mathf.Sign(enemyBody.localScale.x);
-
         if (leftEye != null) LaunchEye(leftEye, -1f, faceDir);
         if (rightEye != null) LaunchEye(rightEye, 1f, faceDir);
-
-        // 6. GIẤU CÁI ĐẦU ĐI (Tạo cảm giác nổ đầu)
-        if (headObject != null) headObject.SetActive(false);
-
-        // 7. FADE MỜ CÁI THÂN SAU KHI CHẾT
-        if (spriteRenderer != null)
-        {
-            spriteRenderer.DOKill();
-            spriteRenderer.DOFade(0f, 1f).SetDelay(2f);
-        }
     }
 
     // --- ĐÂY LÀ PHẦN THÊM MỚI HELPER METHOD ĐỂ BẮN MẮT ---
@@ -277,7 +319,9 @@ public class EnemyFeedback : MonoBehaviour
         // 2. DORotate: Xoay vòng vòng điên cuồng khi bay
         eye.transform.DORotate(new Vector3(0, 0, UnityEngine.Random.Range(-720f, 720f)), eyeFlyDuration, RotateMode.FastBeyond360);
 
-        // 3. DOFade: Mờ dần và biến mất khi tiếp đất
-        eye.DOFade(0f, eyeFadeDuration).SetDelay(eyeFlyDuration * 0.5f); // Fade bắt đầu ở giữa chặng đường bay
+        eye.DOFade(0f, eyeFadeDuration).SetDelay(eyeFlyDuration * 0.5f).OnComplete(() =>
+        {
+            eye.gameObject.SetActive(false); // Bay xong, mờ xong thì tắt hẳn đi!
+        });
     }
 }

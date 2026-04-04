@@ -6,7 +6,7 @@ public class EnemyController : MonoBehaviour
 {
     public event Action OnTakeDamage;
     public event Action OnDie;
-    public event Action OnAnticipate; // bao hieu luc bat dau gong de feedback chay hieu ung
+    public event Action OnAnticipate;
 
     public enum EnemyState { chase, anticipate, dash, cooldown }
     public EnemyState currentState = EnemyState.chase;
@@ -16,106 +16,123 @@ public class EnemyController : MonoBehaviour
     [SerializeField] private float moveSpeed = 3f;
 
     [Header("dash attack")]
-    [SerializeField] private float dashRange = 4f; // khoang cach bat dau lao
-    [SerializeField] private float dashSpeed = 12f; // toc do lao
-    [SerializeField] private float anticipateTime = 0.3f; // thoi gian gong (dung yen)
-    [SerializeField] private float dashDuration = 0.25f; // thoi gian bay tren khong
-    [SerializeField] private float cooldownTime = 1f; // thoi gian tho sau khi vồ hụt
+    [SerializeField] private float dashRange = 4f;
+    [SerializeField] private float dashSpeed = 12f;
+    [SerializeField] private float anticipateTime = 0.3f;
+    [SerializeField] private float dashDuration = 0.25f;
+    [SerializeField] private float cooldownTime = 1f;
 
     private float currentHealth;
-    private Transform player;
+
+    // dung static de tim player 1 lan duy nhat cho tat ca quai
+    private static Transform playerRef;
+
     private Rigidbody2D rb;
 
     private float stunTimer;
-    private bool isDead = false;
+    public bool isDead = false;
 
     private float lastMoveDirection = 1f;
     private const float horizontalEpsilon = 0.05f;
 
-    // cac bien cho state machine
     private float stateTimer;
     private float dashDirection;
     private int originalLayer;
+    private int corpseLayer;
 
-    // them ham awake de lay component ngay lap tuc
+    // bien thay the cho invoke()
+    private float despawnTimer;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        originalLayer = gameObject.layer; // luu lai layer goc
+        originalLayer = gameObject.layer;
+        corpseLayer = LayerMask.NameToLayer("Corpse");
     }
 
     void Start()
     {
         currentHealth = maxHealth;
 
-        GameObject p = GameObject.FindGameObjectWithTag("Player");
-        if (p != null) player = p.transform;
+        if (playerRef == null)
+        {
+            GameObject p = GameObject.FindGameObjectWithTag("Player");
+            if (p != null) playerRef = p.transform;
+        }
+    }
+
+    void Update()
+    {
+        // dung update de dem gio huy xac thay vi invoke
+        if (isDead)
+        {
+            if (despawnTimer > 0)
+            {
+                despawnTimer -= Time.deltaTime;
+                if (despawnTimer <= 0)
+                {
+                    Despawn();
+                }
+            }
+        }
     }
 
     void FixedUpdate()
     {
-        if (isDead || player == null) return;
+        if (isDead || playerRef == null) return;
 
-        // bi ban trung la huy moi trang thai, bi choang
         if (stunTimer > 0)
         {
             stunTimer -= Time.fixedDeltaTime;
             return;
         }
 
-        float dx = player.position.x - transform.position.x;
+        float dx = playerRef.position.x - transform.position.x;
         float distToPlayer = Mathf.Abs(dx);
 
-        // xac dinh huong quay mat
         float dir = lastMoveDirection;
         if (distToPlayer > horizontalEpsilon)
         {
             dir = Mathf.Sign(dx);
-            if (currentState != EnemyState.dash) lastMoveDirection = dir; // khong quay mat luc dang bay
+            if (currentState != EnemyState.dash) lastMoveDirection = dir;
         }
 
-        // may trang thai (state machine)
         switch (currentState)
         {
             case EnemyState.chase:
                 rb.linearVelocity = new Vector2(dir * moveSpeed, rb.linearVelocity.y);
-
-                // neu du gan thi bat dau gong
                 if (distToPlayer <= dashRange)
                 {
-                    rb.linearVelocity = new Vector2(0, rb.linearVelocity.y); // dung lai
+                    rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
                     currentState = EnemyState.anticipate;
                     stateTimer = anticipateTime;
-                    OnAnticipate?.Invoke(); // bao cho hieu ung biet
+                    OnAnticipate?.Invoke();
                 }
                 break;
 
             case EnemyState.anticipate:
-                rb.linearVelocity = new Vector2(0, rb.linearVelocity.y); // dung im rinh moi
+                rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
                 stateTimer -= Time.fixedDeltaTime;
                 if (stateTimer <= 0)
                 {
-                    // bat dau phong
                     currentState = EnemyState.dash;
                     stateTimer = dashDuration;
-                    dashDirection = dir; // khoa huong bay
+                    dashDirection = dir;
                 }
                 break;
 
             case EnemyState.dash:
-                // bay voi toc do cao
                 rb.linearVelocity = new Vector2(dashDirection * dashSpeed, rb.linearVelocity.y);
                 stateTimer -= Time.fixedDeltaTime;
                 if (stateTimer <= 0)
                 {
-                    // bay xong thi dung lai tho doc
                     currentState = EnemyState.cooldown;
                     stateTimer = cooldownTime;
                 }
                 break;
 
             case EnemyState.cooldown:
-                rb.linearVelocity = new Vector2(0, rb.linearVelocity.y); // dung yen tho
+                rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
                 stateTimer -= Time.fixedDeltaTime;
                 if (stateTimer <= 0)
                 {
@@ -124,8 +141,11 @@ public class EnemyController : MonoBehaviour
                 break;
         }
 
-        // quay hinh anh quai
-        transform.localScale = new Vector3(-lastMoveDirection, 1, 1);
+        float targetScaleX = -lastMoveDirection;
+        if (transform.localScale.x != targetScaleX)
+        {
+            transform.localScale = new Vector3(targetScaleX, 1, 1);
+        }
     }
 
     public void TakeDamage(float damage, Vector2 knockbackForce)
@@ -142,7 +162,6 @@ public class EnemyController : MonoBehaviour
         currentHealth -= damage;
         stunTimer = 0.2f;
 
-        // neu dang gong hoac dang vồ ma an dan thi reset ve chase
         if (currentState != EnemyState.cooldown)
         {
             currentState = EnemyState.chase;
@@ -162,8 +181,10 @@ public class EnemyController : MonoBehaviour
         currentHealth = maxHealth;
         currentState = EnemyState.chase;
         stunTimer = 0f;
+        despawnTimer = 0f; // reset timer
 
         rb.linearVelocity = Vector2.zero;
+        rb.linearDamping = 0f;
         transform.rotation = Quaternion.identity;
         gameObject.layer = originalLayer;
     }
@@ -173,15 +194,10 @@ public class EnemyController : MonoBehaviour
         isDead = true;
         OnDie?.Invoke();
 
-        gameObject.layer = LayerMask.NameToLayer("Corpse");
+        gameObject.layer = corpseLayer;
+        rb.linearDamping = 15f;
 
-        // XÓA DÒNG NÀY ĐI:
-        // rb.linearDamping = 15f; 
-
-        // THÊM DÒNG NÀY VÀO: Ép vận tốc X về 0 (hết trượt), giữ nguyên vận tốc Y (rớt tự do)
-        rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
-
-        Invoke(nameof(Despawn), 5f);
+        despawnTimer = 5f; // bat dau dem gio despawn
     }
 
     private void Despawn()
@@ -192,7 +208,6 @@ public class EnemyController : MonoBehaviour
         }
         else
         {
-            // fallback cho chac an neu quen chua setup pool trong scene
             Destroy(gameObject);
         }
     }

@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Pool; // thu vien pool chuan cua unity
 
 public class EnemyPool : MonoBehaviour
 {
@@ -7,9 +7,11 @@ public class EnemyPool : MonoBehaviour
 
     [Header("settings")]
     [SerializeField] private EnemyController enemyPrefab;
-    [SerializeField] private int initialPoolSize = 20; // so luong quai tao san
+    [SerializeField] private int defaultCapacity = 20;
+    [SerializeField] private int maxSize = 50;
 
-    private Queue<EnemyController> pool = new Queue<EnemyController>();
+    // su dung object pool cua unity thay vi queue
+    private IObjectPool<EnemyController> pool;
 
     void Awake()
     {
@@ -20,39 +22,53 @@ public class EnemyPool : MonoBehaviour
         }
         Instance = this;
 
-        // tao san quai bo vao kho luc moi load game
-        for (int i = 0; i < initialPoolSize; i++)
-        {
-            EnemyController enemy = Instantiate(enemyPrefab, transform);
-            enemy.gameObject.SetActive(false);
-            pool.Enqueue(enemy);
-        }
+        pool = new ObjectPool<EnemyController>(
+            createFunc: CreateEnemy,
+            actionOnGet: OnTakeFromPool,
+            actionOnRelease: OnReturnedToPool,
+            actionOnDestroy: OnDestroyPoolObject,
+            collectionCheck: false,
+            defaultCapacity: defaultCapacity,
+            maxSize: maxSize
+        );
+
+        // pre-warm: tao san de tranh giat lag luc moi bat game
+        var preWarmArray = new EnemyController[defaultCapacity];
+        for (int i = 0; i < defaultCapacity; i++) preWarmArray[i] = pool.Get();
+        for (int i = 0; i < defaultCapacity; i++) pool.Release(preWarmArray[i]);
     }
 
+    private EnemyController CreateEnemy()
+    {
+        return Instantiate(enemyPrefab, transform);
+    }
+
+    private void OnTakeFromPool(EnemyController enemy)
+    {
+        enemy.gameObject.SetActive(true);
+        enemy.ResetEnemy();
+    }
+
+    private void OnReturnedToPool(EnemyController enemy)
+    {
+        enemy.gameObject.SetActive(false);
+    }
+
+    private void OnDestroyPoolObject(EnemyController enemy)
+    {
+        Destroy(enemy.gameObject);
+    }
+
+    // api de cac script khac goi
     public EnemyController SpawnEnemy(Vector3 position)
     {
-        EnemyController enemy;
-
-        // neu kho het quai (vi du ban can 21 con ma kho chi co 20), tao them
-        if (pool.Count == 0)
-        {
-            enemy = Instantiate(enemyPrefab, transform);
-        }
-        else
-        {
-            enemy = pool.Dequeue();
-        }
-
+        EnemyController enemy = pool.Get();
         enemy.transform.position = position;
-        enemy.gameObject.SetActive(true);
-        enemy.ResetEnemy(); // reset lai mau, trang thai
-
         return enemy;
     }
 
     public void ReturnToPool(EnemyController enemy)
     {
-        enemy.gameObject.SetActive(false);
-        pool.Enqueue(enemy);
+        pool.Release(enemy);
     }
 }
