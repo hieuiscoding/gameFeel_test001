@@ -125,7 +125,7 @@ public class EnemyController : MonoBehaviour
         }
 
         // quay hinh anh quai
-        transform.localScale = new Vector3(lastMoveDirection, 1, 1);
+        transform.localScale = new Vector3(-lastMoveDirection, 1, 1);
     }
 
     public void TakeDamage(float damage, Vector2 knockbackForce)
@@ -164,7 +164,6 @@ public class EnemyController : MonoBehaviour
         stunTimer = 0f;
 
         rb.linearVelocity = Vector2.zero;
-        rb.linearDamping = 0f; // SỬA linearDrag THÀNH drag
         transform.rotation = Quaternion.identity;
         gameObject.layer = originalLayer;
     }
@@ -174,13 +173,13 @@ public class EnemyController : MonoBehaviour
         isDead = true;
         OnDie?.Invoke();
 
-        // 1. XOA (HOAC COMMENT) dong xoay nay de chong lai DOTween khien box bi dung dung
-        // transform.rotation = Quaternion.Euler(0, 0, -90f * Mathf.Sign(transform.localScale.x));
-
         gameObject.layer = LayerMask.NameToLayer("Corpse");
 
-        // 2. THEM DONG NAY: Tang ma sat (Drag) len that cao de cai xac bi thang gap lai tren mat dat
-        rb.linearDamping = 15f;
+        // XÓA DÒNG NÀY ĐI:
+        // rb.linearDamping = 15f; 
+
+        // THÊM DÒNG NÀY VÀO: Ép vận tốc X về 0 (hết trượt), giữ nguyên vận tốc Y (rớt tự do)
+        rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
 
         Invoke(nameof(Despawn), 5f);
     }
