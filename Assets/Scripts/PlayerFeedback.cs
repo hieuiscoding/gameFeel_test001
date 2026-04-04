@@ -9,7 +9,7 @@ public class PlayerFeedback : MonoBehaviour
 {
     [Header("references")]
     [SerializeField] private Transform weaponPivot;
-    [SerializeField] private SpriteRenderer weaponSpriteRenderer; // them o de luu hinh anh sung
+    [SerializeField] private SpriteRenderer weaponSpriteRenderer;
     [SerializeField] private CanvasGroup bloodOverlay;
     [SerializeField] private CinemachineImpulseSource impulseSource;
 
@@ -22,21 +22,35 @@ public class PlayerFeedback : MonoBehaviour
     [SerializeField] private ParticleSystem muzzleFlash;
     [SerializeField] private ParticleSystem shellFX;
     private Vector3 baseWeaponPos;
+
     [Header("bullet tracer")]
-    [SerializeField] private LineRenderer bulletTracerPrefab; 
+    [SerializeField] private LineRenderer bulletTracerPrefab;
 
     [Header("light vfx")]
     [SerializeField] private Light2D muzzleLight;
     [SerializeField] private float flashIntensity = 3f;
-    
+
     [Header("global light vfx")]
     [SerializeField] private UnityEngine.Rendering.Universal.Light2D globalFlashLight;
-    [SerializeField] private float globalFlashIntensity = 1.2f; // do sang toan ban do
+    [SerializeField] private float globalFlashIntensity = 1.2f;
+
     private PlayerController playerController;
+
+    // --- ĐÃ THÊM BIẾN NÀY ĐỂ CACHE LAYER ---
+    private int enemyLayerMask;
 
     void Awake()
     {
         playerController = GetComponent<PlayerController>();
+    }
+
+    void Start()
+    {
+        if (bloodOverlay != null) bloodOverlay.alpha = 0f;
+        if (weaponPivot != null) baseWeaponPos = weaponPivot.localPosition;
+
+        // --- CACHE LAYERMASK NGAY LÚC BẮT ĐẦU ---
+        enemyLayerMask = LayerMask.GetMask("Enemy");
     }
 
     void OnEnable()
@@ -45,11 +59,10 @@ public class PlayerFeedback : MonoBehaviour
         playerController.OnLand += ApplyLandFeel;
         playerController.OnShoot += ApplyShootFeel;
         playerController.OnTakeDamage += ApplyDamageFeel;
-        playerController.OnDrawTracer += ApplyTracerFeel; // ve vệt dan
-        playerController.OnWeaponSwitched += ApplyWeaponSwitch; // doi sung
+        playerController.OnDrawTracer += ApplyTracerFeel;
+        playerController.OnWeaponSwitched += ApplyWeaponSwitch;
         playerController.OnThrowGrenade += ApplyThrowFeel;
         playerController.OnRoll += ApplyRollFeel;
-
     }
 
     void OnDisable()
@@ -64,50 +77,26 @@ public class PlayerFeedback : MonoBehaviour
         playerController.OnRoll -= ApplyRollFeel;
     }
 
-    // them bien luu mask
-    private int enemyLayerMask;
-
-    void Start()
-    {
-        // luu thong tin layer vao bien ngay tu dau
-        enemyLayerMask = LayerMask.GetMask("Enemy");
-
-        if (bloodOverlay != null) bloodOverlay.alpha = 0f;
-        if (weaponPivot != null) baseWeaponPos = weaponPivot.localPosition;
-    }
-
-
-
     private void ApplyWeaponSwitch(Sprite newSprite)
     {
         if (weaponSpriteRenderer != null && newSprite != null)
         {
-            // kill tween dang chay de tranh loi hinh anh
             weaponSpriteRenderer.transform.DOKill();
-
-            // FIX LỖI KÉO GIÃN VĨNH VIỄN: Luôn trả về scale gốc (1, 1, 1) trước khi tạo hiệu ứng co giãn mới
             weaponSpriteRenderer.transform.localScale = Vector3.one;
-
             weaponSpriteRenderer.sprite = newSprite;
-
-            // hieu ung nhe nhe khi rut sung ra
             weaponSpriteRenderer.transform.DOPunchScale(new Vector3(0.2f, -0.2f, 0), 0.15f, 10, 1);
         }
     }
 
     private void ApplyJumpFeel()
     {
-        // Đã có Animator lo dáng nhảy, feedback chỉ cần nhả bụi
         if (jumpDust != null) jumpDust.Play();
     }
 
     private void ApplyLandFeel()
     {
-        // Đã có Animator lo dáng đáp đất, feedback chỉ gọi bụi
         if (landDust != null) landDust.Play();
     }
-
-
 
     private void ApplyShootFeel()
     {
@@ -116,8 +105,6 @@ public class PlayerFeedback : MonoBehaviour
             weaponPivot.DOKill();
             weaponPivot.localPosition = baseWeaponPos;
 
-            // SỬA Ở ĐÂY: Thay số -0.5f thành -0.1f hoặc -0.05f 
-            // Giảm cả thời gian giật (0.05f -> 0.02f) để súng nảy nhanh hơn khi sấy
             weaponPivot.DOLocalMoveX(baseWeaponPos.x - 0.05f, 0.02f)
                 .SetEase(Ease.OutExpo)
                 .OnComplete(() => weaponPivot.DOLocalMoveX(baseWeaponPos.x, 0.1f));
@@ -155,8 +142,6 @@ public class PlayerFeedback : MonoBehaviour
         if (weaponPivot != null)
         {
             weaponPivot.DOKill();
-
-            // SỬA DÒNG NÀY: Trả về vị trí gốc
             weaponPivot.localPosition = baseWeaponPos;
 
             weaponPivot.DOLocalMoveY(baseWeaponPos.y + 0.4f, 0.1f)
@@ -167,16 +152,15 @@ public class PlayerFeedback : MonoBehaviour
         }
     }
 
-
     private void ApplyTracerFeel(Vector3 start, Vector3 end, float damage, float knockbackPower)
     {
         if (bulletTracerPrefab == null) return;
+
+        // Cảnh báo: Về lâu dài, Instantiate/Destroy ở đây vẫn gây tụt FPS nếu bắn súng liên thanh.
+        // Bạn nên cân nhắc làm một "BulletTracerPool" tương tự như EnemyPool nhé.
         LineRenderer tracer = Instantiate(bulletTracerPrefab, start, Quaternion.identity);
 
-        // --- DÒNG MỚI ĐỂ FIX LỖI 100% ---
-        // Ép buộc LineRenderer phải dùng tọa độ thế giới, bỏ qua mọi vấn đề về hierarchy
         tracer.useWorldSpace = true;
-
         tracer.startColor = Color.white;
         tracer.endColor = new Color(1, 1, 1, 0);
         tracer.startWidth = 0.08f;
@@ -184,17 +168,12 @@ public class PlayerFeedback : MonoBehaviour
         tracer.SetPosition(0, start);
         tracer.SetPosition(1, start);
 
-        // ... (Toàn bộ phần code còn lại của hàm ApplyTracerFeel giữ nguyên) ...
-
-        // 1. Đạn bay đi (Phần đầu tia đạn kéo dài tới điểm end)
         float travelTime = 0.02f;
         DOVirtual.Vector3(start, end, travelTime, v => tracer.SetPosition(1, v))
             .SetUpdate(true)
             .OnComplete(() => {
-                // --- ĐẠN THẬT LÀ ĐÂY: Khi tia đạn chạm đích mới tính sát thương ---
                 CheckHitAtPoint(end, damage, (end - start).normalized * knockbackPower);
 
-                // 2. Phần đuôi tia đạn co lại (Tia đạn biến mất)
                 DOVirtual.Vector3(start, end, 0.03f, v => tracer.SetPosition(0, v))
                     .SetUpdate(true)
                     .OnComplete(() => Destroy(tracer.gameObject));
@@ -203,7 +182,7 @@ public class PlayerFeedback : MonoBehaviour
 
     private void CheckHitAtPoint(Vector3 point, float damage, Vector2 knockback)
     {
-        // dung bien da cache thay vi tao mask bang string moi khi ban dan
+        // --- SỬ DỤNG BIẾN INT ĐÃ CACHE Ở ĐÂY ---
         Collider2D hit = Physics2D.OverlapCircle(point, 0.1f, enemyLayerMask);
         if (hit != null)
         {
@@ -231,7 +210,6 @@ public class PlayerFeedback : MonoBehaviour
 
     private void ApplyRollFeel()
     {
-        // Animator đã lo lộn vòng, ở đây mình tạo cảm giác lướt gió bằng cách gọi cả 2 bụi
         if (jumpDust != null) jumpDust.Play();
         if (landDust != null) landDust.Play();
     }

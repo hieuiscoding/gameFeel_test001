@@ -546,7 +546,7 @@ Rigidbody2D:
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
@@ -584,10 +584,14 @@ MonoBehaviour:
   deathSound: {fileID: 8300000, guid: 2082a0ac9318f404a92a762f1185821b, type: 3}
   deathSoundVolume: 1
   deathPitchVariance: 0.2
-  idleSounds: []
+  idleSounds:
+  - {fileID: 8300000, guid: c66b2eb04a42a4b49a07a1f8fe891cdc, type: 3}
+  - {fileID: 8300000, guid: 2f3f417568723a4439710a58db2e57be, type: 3}
+  - {fileID: 8300000, guid: a59b3568059883a449ef5cb989be7423, type: 3}
   anticipateSounds:
   - {fileID: 8300000, guid: 2f3f417568723a4439710a58db2e57be, type: 3}
   - {fileID: 8300000, guid: a59b3568059883a449ef5cb989be7423, type: 3}
+  - {fileID: 8300000, guid: c66b2eb04a42a4b49a07a1f8fe891cdc, type: 3}
   dashSounds:
   - {fileID: 8300000, guid: a59b3568059883a449ef5cb989be7423, type: 3}
   minIdleSoundInterval: 2
@@ -597,7 +601,7 @@ MonoBehaviour:
   wobbleStrength: 15
   bloodEmitCount: 5
   vfxCooldown: 0.05
-  warningColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  warningColor: {r: 1, g: 1, b: 1, a: 1}
   coinPrefab: {fileID: 0}
   minCoins: 1
   maxCoins: 2
