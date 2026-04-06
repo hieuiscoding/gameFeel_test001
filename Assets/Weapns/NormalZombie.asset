@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65ae433a4d1547242b0bfd3a7d08ec7e, type: 3}
   m_Name: NormalZombie
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStatsSO
-  maxHealth: 4
+  maxHealth: 4.5
   moveSpeed: 3
   dashRange: 4
   dashSpeed: 12

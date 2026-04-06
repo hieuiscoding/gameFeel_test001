@@ -585,13 +585,9 @@ MonoBehaviour:
   deathSoundVolume: 1
   deathPitchVariance: 0.2
   idleSounds:
-  - {fileID: 8300000, guid: c66b2eb04a42a4b49a07a1f8fe891cdc, type: 3}
   - {fileID: 8300000, guid: 2f3f417568723a4439710a58db2e57be, type: 3}
-  - {fileID: 8300000, guid: a59b3568059883a449ef5cb989be7423, type: 3}
   anticipateSounds:
   - {fileID: 8300000, guid: 2f3f417568723a4439710a58db2e57be, type: 3}
-  - {fileID: 8300000, guid: a59b3568059883a449ef5cb989be7423, type: 3}
-  - {fileID: 8300000, guid: c66b2eb04a42a4b49a07a1f8fe891cdc, type: 3}
   dashSounds:
   - {fileID: 8300000, guid: a59b3568059883a449ef5cb989be7423, type: 3}
   minIdleSoundInterval: 2
