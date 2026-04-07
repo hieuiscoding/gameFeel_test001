@@ -163,7 +163,6 @@ public class EnemyController : MonoBehaviour
         despawnTimer = 0f;
 
         rb.linearVelocity = Vector2.zero;
-        rb.linearDamping = 0f;
         transform.rotation = Quaternion.identity;
         gameObject.layer = originalLayer;
     }
@@ -173,7 +172,7 @@ public class EnemyController : MonoBehaviour
         isDead = true;
         OnDie?.Invoke();
         gameObject.layer = corpseLayer;
-        rb.linearDamping = 15f;
+        rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
         despawnTimer = 5f;
     }
 

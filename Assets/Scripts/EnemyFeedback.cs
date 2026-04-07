@@ -59,7 +59,8 @@ public class EnemyFeedback : MonoBehaviour
     private Color originalColor;
     private float lastHitVfxTime; // luu thoi gian lan cuoi chay hit vfx
     private UnityEngine.Rendering.SortingGroup sortingGroup;
-
+    private Vector3 leftEyeStartScale;
+    private Vector3 rightEyeStartScale;
     void Awake()
     {
         enemyController = GetComponent<EnemyController>();
@@ -75,11 +76,13 @@ public class EnemyFeedback : MonoBehaviour
         if (leftEye != null)
         {
             leftEyeStartOffset = leftEye.transform.localPosition;
+            leftEyeStartScale = leftEye.transform.localScale; // THÊM DÒNG NÀY
             leftEyeParent = leftEye.transform.parent;
         }
         if (rightEye != null)
         {
             rightEyeStartOffset = rightEye.transform.localPosition;
+            rightEyeStartScale = rightEye.transform.localScale; // THÊM DÒNG NÀY
             rightEyeParent = rightEye.transform.parent;
         }
     }
@@ -171,6 +174,12 @@ public class EnemyFeedback : MonoBehaviour
         eye.transform.localRotation = Quaternion.identity;
         eye.color = Color.white;
         eye.gameObject.SetActive(true);
+
+        eye.transform.localScale = (eye == leftEye) ? leftEyeStartScale : rightEyeStartScale;
+
+        eye.transform.localRotation = Quaternion.identity;
+        eye.color = Color.white;
+        eye.gameObject.SetActive(true);
     }
 
     private void ApplyWarningFeel()
@@ -215,11 +224,9 @@ public class EnemyFeedback : MonoBehaviour
         }
     }
 
-    // --- KHAI BÁO THÊM 2 BIẾN NÀY DƯỚI CÙNG DANH SÁCH BIẾN CỦA BẠN ---
     private readonly int doDieHash = Animator.StringToHash("doDie");
     private readonly int deathTypeHash = Animator.StringToHash("DeathType");
 
-    // --- THAY THẾ TOÀN BỘ HÀM ApplyDieFeel BẰNG ĐOẠN NÀY ---
     private void ApplyDieFeel()
     {
         bool isOverkill = UnityEngine.Random.value < 0.3f;
@@ -274,7 +281,7 @@ public class EnemyFeedback : MonoBehaviour
         }
         else
         {
-            // --- SỬ DỤNG HASH Ở ĐÂY THAY VÌ STRING TỐN TÀI NGUYÊN ---
+            // hash thay string 
             if (anim != null)
             {
                 int randomDeath = UnityEngine.Random.Range(0, 2);
@@ -314,7 +321,7 @@ public class EnemyFeedback : MonoBehaviour
         });
     }
 
-    // --- HELPER METHOD PHÁT ÂM THANH HOÀI CỔ ---
+    // sfx
     private void PlayRandomSound(AudioClip[] clips, float volume, float pitchVariance)
     {
         if (clips == null || clips.Length == 0) return;

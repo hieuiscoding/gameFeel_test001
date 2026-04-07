@@ -136,16 +136,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Grenade
   spriteRenderer: {fileID: 9045117862505286898}
-  explosionRadius: 3
-  damage: 4
+  explosionRadius: 3.5
+  damage: 5
   knockbackPower: 5
   explosionDelay: 1
   enemyLayer:
     serializedVersion: 2
     m_Bits: 64
   flashColor: {r: 1, g: 0.16805285, b: 0, a: 1}
-  initialFlashSpeed: 10
-  maxFlashSpeed: 15
+  initialFlashSpeed: 5
+  maxFlashSpeed: 10
   explosionVFX: {fileID: 3068248620867230068, guid: 6d6b5dd987f592746809d8bffc8186c6, type: 3}
   explosionSound: {fileID: 8300000, guid: 588453f033eb65c4f8fccab2955d4833, type: 3}
 --- !u!58 &5233594298623626295
