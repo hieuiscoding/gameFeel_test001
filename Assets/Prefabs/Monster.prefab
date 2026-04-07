@@ -598,9 +598,9 @@ MonoBehaviour:
   bloodEmitCount: 5
   vfxCooldown: 0.05
   warningColor: {r: 1, g: 1, b: 1, a: 1}
-  coinPrefab: {fileID: 0}
+  coinPrefab: {fileID: 5059012583923865799, guid: 8032e8163f40ebe49b2723a9cfa11d73, type: 3}
   minCoins: 1
-  maxCoins: 2
+  maxCoins: 1
   anim: {fileID: 4633196041243748921}
   leftEye: {fileID: 2727988860784286524}
   rightEye: {fileID: 4680341169246404479}
