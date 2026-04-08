@@ -61,6 +61,8 @@ public class EnemyFeedback : MonoBehaviour
     private UnityEngine.Rendering.SortingGroup sortingGroup;
     private Vector3 leftEyeStartScale;
     private Vector3 rightEyeStartScale;
+
+    [SerializeField] private AudioSource voiceSource;
     void Awake()
     {
         enemyController = GetComponent<EnemyController>();
@@ -229,6 +231,7 @@ public class EnemyFeedback : MonoBehaviour
 
     private void ApplyDieFeel()
     {
+        if (voiceSource != null) voiceSource.Stop();
         bool isOverkill = UnityEngine.Random.value < 0.3f;
 
         if (deathSound != null && AudioManager.Instance != null)
@@ -322,31 +325,16 @@ public class EnemyFeedback : MonoBehaviour
     }
 
     // sfx
+    // sfx
     private void PlayRandomSound(AudioClip[] clips, float volume, float pitchVariance)
     {
-        if (clips == null || clips.Length == 0) return;
+        if (clips == null || clips.Length == 0 || voiceSource == null) return;
 
         AudioClip clipToPlay = clips[UnityEngine.Random.Range(0, clips.Length)];
         if (clipToPlay == null) return;
 
-        if (AudioManager.Instance != null)
-        {
-            var opts = new AudioManager.SFXPlayOptions
-            {
-                is2D = true,
-                volume = volume,
-                volumeVariance = 0.05f,
-                pitch = 1f,
-                pitchVariance = pitchVariance,
-                maxDelaySeconds = 0f,
-                minIntervalPerClip = 0.1f,
-                allowStealWhenBusy = true
-            };
-            AudioManager.Instance.PlaySFX(clipToPlay, opts);
-        }
-        else
-        {
-            AudioSource.PlayClipAtPoint(clipToPlay, transform.position, volume);
-        }
+        // Bóp méo cao độ (pitch) và phát trực tiếp từ cái loa của quái
+        voiceSource.pitch = 1f + UnityEngine.Random.Range(-pitchVariance, pitchVariance);
+        voiceSource.PlayOneShot(clipToPlay, volume);
     }
 }
