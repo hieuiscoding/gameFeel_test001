@@ -2,21 +2,34 @@ using UnityEngine;
 
 public class EnemySpawner : MonoBehaviour
 {
-    [Header("settings")]
-    // da xoa bien enemyPrefab vi gio EnemyPool se quan ly viec do
-    [SerializeField] private float spawnInterval = 3f;
+    [Header("spawn timings")]
+    [SerializeField] private float minSpawnInterval = 2.5f; // thoi gian ngan nhat de sinh quai
+    [SerializeField] private float maxSpawnInterval = 5f;   // thoi gian lau nhat de sinh quai
+
+    [Header("locations")]
     [SerializeField] private Transform[] spawnPoints;
 
-    private float timer;
+    // dung cach dem gio toi uu bang time.time
+    private float nextSpawnTime;
+
+    void Start()
+    {
+        // random thoi gian ra mat con quai dau tien luc moi vao game
+        SetNextSpawnTime();
+    }
 
     void Update()
     {
-        timer += Time.deltaTime;
-        if (timer >= spawnInterval)
+        if (Time.time >= nextSpawnTime)
         {
             SpawnEnemy();
-            timer = 0f;
+            SetNextSpawnTime(); // random thoi gian cho lan tiep theo
         }
+    }
+
+    private void SetNextSpawnTime()
+    {
+        nextSpawnTime = Time.time + Random.Range(minSpawnInterval, maxSpawnInterval);
     }
 
     private void SpawnEnemy()
@@ -26,7 +39,6 @@ public class EnemySpawner : MonoBehaviour
         int randomIndex = Random.Range(0, spawnPoints.Length);
         Transform pt = spawnPoints[randomIndex];
 
-        // goi pool lay quai ra thay vi dung instantiate
         if (EnemyPool.Instance != null)
         {
             EnemyPool.Instance.SpawnEnemy(pt.position);
