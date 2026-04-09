@@ -6,8 +6,6 @@ using DG.Tweening;
 public class VFXManager : MonoBehaviour
 {
     public static VFXManager Instance { get; private set; }
-
-    // tao tu dien de luu nhieu loai pool (pool mau, pool no, pool bui...)
     private Dictionary<ParticleSystem, IObjectPool<ParticleSystem>> pools = new Dictionary<ParticleSystem, IObjectPool<ParticleSystem>>();
 
     void Awake()

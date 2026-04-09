@@ -16,6 +16,12 @@ public class EnemyController : MonoBehaviour
     [Header("stats configuration")]
     [SerializeField] private EnemyStatsSO stats;
 
+    [Header("sensors (AI)")]
+    [SerializeField] private float aggroRange = 15f; // Khoảng cách bắt đầu đuổi
+    [SerializeField] private Transform ledgeCheck;   // Đặt 1 cục object rỗng ở mũi chân quái
+    [SerializeField] private Transform wallCheck;    // Đặt 1 cục object rỗng ở trước mặt quái
+    [SerializeField] private LayerMask groundLayer;
+
     private float currentHealth;
     private static Transform playerRef;
     private Rigidbody2D rb;
@@ -25,7 +31,7 @@ public class EnemyController : MonoBehaviour
 
     private float lastMoveDirection = 1f;
     private const float horizontalEpsilon = 0.05f;
-
+    
     private float stateTimer;
     private float dashDirection;
     private int originalLayer;
@@ -72,10 +78,31 @@ public class EnemyController : MonoBehaviour
         }
 
         float dx = playerRef.position.x - transform.position.x;
-        float distToPlayer = Mathf.Abs(dx);
+        float dy = playerRef.position.y - transform.position.y; // THÊM: Tính cả khoảng cách trục Y
+        float distToPlayerX = Mathf.Abs(dx);
+        float distToPlayerY = Mathf.Abs(dy);
+
+        // THÊM: Nếu ở quá xa thì đứng yên, không làm gì cả
+        if (Vector2.Distance(transform.position, playerRef.position) > aggroRange)
+        {
+            rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
+            return;
+        }
+
+        // environment checks
+        bool isNearLedge = false;
+        bool isHittingWall = false;
+
+        if (ledgeCheck != null && wallCheck != null)
+        {
+            // raycasting xuống để xem có gần mép không 
+            isNearLedge = !Physics2D.Raycast(ledgeCheck.position, Vector2.down, 1f, groundLayer);
+            // Bắn tia ngang xem có đập mặt vào tường không
+            isHittingWall = Physics2D.Raycast(wallCheck.position, Vector2.right * lastMoveDirection, 0.5f, groundLayer);
+        }
 
         float dir = lastMoveDirection;
-        if (distToPlayer > horizontalEpsilon)
+        if (distToPlayerX > horizontalEpsilon)
         {
             dir = Mathf.Sign(dx);
             if (currentState != EnemyState.dash) lastMoveDirection = dir;
@@ -84,8 +111,17 @@ public class EnemyController : MonoBehaviour
         switch (currentState)
         {
             case EnemyState.chase:
-                rb.linearVelocity = new Vector2(dir * stats.moveSpeed, rb.linearVelocity.y);
-                if (distToPlayer <= stats.dashRange)
+                //stop if hitting wall or near ledge, else keep moving
+                if (isHittingWall || isNearLedge)
+                {
+                    rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
+                }
+                else
+                {
+                    rb.linearVelocity = new Vector2(dir * stats.moveSpeed, rb.linearVelocity.y);
+                }
+
+                if (distToPlayerX <= stats.dashRange && distToPlayerY < 2f)
                 {
                     rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
                     currentState = EnemyState.anticipate;
@@ -93,6 +129,7 @@ public class EnemyController : MonoBehaviour
                     OnAnticipate?.Invoke();
                 }
                 break;
+
 
             case EnemyState.anticipate:
                 rb.linearVelocity = new Vector2(0, rb.linearVelocity.y);
@@ -132,7 +169,24 @@ public class EnemyController : MonoBehaviour
             transform.localScale = new Vector3(targetScaleX, 1, 1);
         }
     }
+    // debug lazer
+    private void OnDrawGizmos()
+    {
+        if (ledgeCheck != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(ledgeCheck.position, ledgeCheck.position + Vector3.down * 1f);
+        }
 
+        if (wallCheck != null)
+        {
+            Gizmos.color = Color.blue;
+            Gizmos.DrawLine(wallCheck.position, wallCheck.position + Vector3.right * lastMoveDirection * 0.5f);
+        }
+
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, aggroRange);
+    }
     public void TakeDamage(float damage, Vector2 knockbackForce)
     {
         rb.linearVelocity = Vector2.zero;

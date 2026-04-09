@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.Pool; // thu vien pool chuan cua unity
+using UnityEngine.Pool; 
 
 public class EnemyPool : MonoBehaviour
 {
@@ -32,7 +32,7 @@ public class EnemyPool : MonoBehaviour
             maxSize: maxSize
         );
 
-        // pre-warm: tao san de tranh giat lag luc moi bat game
+        //  tao san de tranh giat lag luc moi bat game
         var preWarmArray = new EnemyController[defaultCapacity];
         for (int i = 0; i < defaultCapacity; i++) preWarmArray[i] = pool.Get();
         for (int i = 0; i < defaultCapacity; i++) pool.Release(preWarmArray[i]);

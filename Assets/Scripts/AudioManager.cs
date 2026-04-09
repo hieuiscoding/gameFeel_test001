@@ -2,14 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Centralized audio manager for SFX playback:
-/// - Reuses a pool of AudioSources to avoid creating/destroying AudioSources at runtime.
-/// - Plays 2D (non-spatialized) sounds by default (spatialBlend = 0).
-/// - Limits simultaneous SFX and prevents excessive overlapping for the same clip via minIntervalPerClip.
-/// - Adds small random pitch/volume variation and optional random delay to reduce repetition.
-/// - If pool is exhausted, drops the least recently used or currently quietest source to avoid spike allocations.
-/// </summary>
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance { get; private set; }
@@ -24,7 +16,6 @@ public class AudioManager : MonoBehaviour
     private readonly Dictionary<AudioClip, float> lastClipPlayTime = new Dictionary<AudioClip, float>();
     private readonly LinkedList<int> recentlyUsed = new LinkedList<int>();
 
-    // tao san 1 ban default de khong phai 'new' lien tuc gay rac bo nho (GC)
     private SFXPlayOptions cachedDefaultOptions;
 
     void Awake()
@@ -93,8 +84,6 @@ public class AudioManager : MonoBehaviour
 
         float delay = (options.maxDelaySeconds <= 0f) ? 0f : Random.Range(0f, options.maxDelaySeconds);
 
-        // TOI UU: Chi dung Coroutine khi thuc su co delay. 
-        // Voi sung dan hoac hit impact, delay = 0 se chay thang vao PlayImmediate de phat am thanh nhanh nhat the.
         if (delay > 0f)
         {
             StartCoroutine(PlayCoroutine(clip, options, delay));

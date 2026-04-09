@@ -37,21 +37,21 @@ public class PlayerAnimation : MonoBehaviour
     private void TriggerJump()
     {
         anim.ResetTrigger("doLand");
-        anim.ResetTrigger("doRoll"); // Dọn rác
+        anim.ResetTrigger("doRoll"); 
         anim.SetTrigger("doJump");
     }
 
     private void TriggerRoll()
     {
-        anim.ResetTrigger("doJump"); // Dọn rác
-        anim.ResetTrigger("doLand"); // Dọn rác
+        anim.ResetTrigger("doJump"); 
+        anim.ResetTrigger("doLand");
         anim.SetTrigger("doRoll");
     }
 
     private void TriggerLand()
     {
         anim.ResetTrigger("doJump");
-        anim.ResetTrigger("doRoll"); // Dọn rác
+        anim.ResetTrigger("doRoll"); 
         anim.SetTrigger("doLand");
     }
 }

@@ -1,4 +1,4 @@
-using System.Collections; // bat buoc phai co de dung IEnumerator
+using System.Collections;
 using Unity.Cinemachine;
 using UnityEngine;
 
@@ -7,7 +7,7 @@ using UnityEngine;
 public class Grenade : MonoBehaviour
 {
     [Header("references")]
-    [SerializeField] private SpriteRenderer spriteRenderer; // can keo thả SpriteRenderer của lựu đạn vào đây
+    [SerializeField] private SpriteRenderer spriteRenderer; // SpriteRenderer
 
     [Header("settings")]
     [SerializeField] private float explosionRadius = 3f;
@@ -18,7 +18,7 @@ public class Grenade : MonoBehaviour
 
     [Header("flashing settings")]
     [SerializeField] private Color flashColor = Color.red; // mau khi nhap nhay (nen dung mau do hoac trang sang)
-    [SerializeField] private float initialFlashSpeed = 3f; // toc do nhap nhay ban dau (so lan/giay)
+    [SerializeField] private float initialFlashSpeed = 3f; // toc do nhap nhay ban dau (lan/giay)
     [SerializeField] private float maxFlashSpeed = 15f;    // toc do nhap nhay toi da ngay truoc khi no
 
     [Header("vfx & sfx")]
@@ -60,11 +60,11 @@ public class Grenade : MonoBehaviour
 
         while (elapsedTime < explosionDelay)
         {
-            // Tinh toan toc do nhap nhay hien tai (Lerp tu cham den nhanh dua tren thoi gian)
+            // Tinh toan toc do nhap nhay hien tai 
             float percentComplete = elapsedTime / explosionDelay;
             float currentFlashSpeed = Mathf.Lerp(initialFlashSpeed, maxFlashSpeed, percentComplete);
 
-            // Tinh thoi gian "bat" va "tat" mau (chia doi chu ky)
+            // Tinh thoi gian bat va tat 
             float flashDuration = 1f / (currentFlashSpeed * 2f);
 
             // --- BAT MAU ---
@@ -75,7 +75,7 @@ public class Grenade : MonoBehaviour
             // Kiem tra lai neu luu dan da no trong luc doi
             if (elapsedTime >= explosionDelay) break;
 
-            // --- TAT MAU (ve mau goc) ---
+            //ve mau goc 
             spriteRenderer.color = originalColor;
             yield return new WaitForSeconds(flashDuration);
             elapsedTime += flashDuration;
