@@ -22,5 +22,5 @@ MonoBehaviour:
   knockbackPower: 15
   parallelSpread: 0.1
   playerKickback: 2
-  shootSound: {fileID: 0}
+  shootSound: {fileID: 8300000, guid: 638363bd648c0224ca2df1ef5caf6c28, type: 3}
   shootVolume: 0.8

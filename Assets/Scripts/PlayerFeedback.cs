@@ -30,9 +30,6 @@ public class PlayerFeedback : MonoBehaviour
     [SerializeField] private Light2D muzzleLight;
     [SerializeField] private float flashIntensity = 3f;
 
-    [Header("global light vfx")]
-    [SerializeField] private UnityEngine.Rendering.Universal.Light2D globalFlashLight;
-    [SerializeField] private float globalFlashIntensity = 1.2f;
 
     private PlayerController playerController;
 
@@ -122,13 +119,6 @@ public class PlayerFeedback : MonoBehaviour
                 .SetTarget(muzzleLight);
         }
 
-        if (globalFlashLight != null)
-        {
-            globalFlashLight.DOKill();
-            globalFlashLight.intensity = globalFlashIntensity;
-            DOTween.To(() => globalFlashLight.intensity, x => globalFlashLight.intensity = x, 0f, 0.15f)
-                .SetTarget(globalFlashLight);
-        }
         if (whiteFlashOverlay != null)
         {
             whiteFlashOverlay.DOKill();
@@ -154,11 +144,11 @@ public class PlayerFeedback : MonoBehaviour
 
     private void ApplyTracerFeel(Vector3 start, Vector3 end, float damage, float knockbackPower)
     {
-        if (bulletTracerPrefab == null) return;
+        if (BulletTracerPool.Instance == null) return;
 
-        // Cảnh báo: Về lâu dài, Instantiate/Destroy ở đây vẫn gây tụt FPS nếu bắn súng liên thanh.
-        // Bạn nên cân nhắc làm một "BulletTracerPool" tương tự như EnemyPool nhé.
-        LineRenderer tracer = Instantiate(bulletTracerPrefab, start, Quaternion.identity);
+        // --- LẤY TIA TỪ POOL ---
+        LineRenderer tracer = BulletTracerPool.Instance.GetTracer();
+        tracer.transform.position = start;
 
         tracer.useWorldSpace = true;
         tracer.startColor = Color.white;
@@ -169,14 +159,20 @@ public class PlayerFeedback : MonoBehaviour
         tracer.SetPosition(1, start);
 
         float travelTime = 0.02f;
+
+        // Hiệu ứng tia đạn bay đi
         DOVirtual.Vector3(start, end, travelTime, v => tracer.SetPosition(1, v))
             .SetUpdate(true)
             .OnComplete(() => {
                 CheckHitAtPoint(end, damage, (end - start).normalized * knockbackPower);
 
+                // Hiệu ứng đuôi tia đạn co lại
                 DOVirtual.Vector3(start, end, 0.03f, v => tracer.SetPosition(0, v))
                     .SetUpdate(true)
-                    .OnComplete(() => Destroy(tracer.gameObject));
+                    .OnComplete(() => {
+                        // --- TRẢ TIA VỀ POOL THAY VÌ DESTROY ---
+                        BulletTracerPool.Instance.ReturnToPool(tracer);
+                    });
             });
     }
 

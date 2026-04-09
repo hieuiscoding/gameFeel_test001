@@ -1,6 +1,5 @@
 using UnityEngine;
 
-// ep buoc phai co controller va audiosource de chay
 [RequireComponent(typeof(PlayerController))]
 [RequireComponent(typeof(AudioSource))]
 public class PlayerAudioFeedback : MonoBehaviour
@@ -8,12 +7,15 @@ public class PlayerAudioFeedback : MonoBehaviour
     [Header("audio clips")]
     [SerializeField] private AudioClip jumpSound;
     [SerializeField] private AudioClip landSound;
-    [SerializeField] private AudioClip shootSound;
     [SerializeField] private AudioClip damageSound;
 
+    // --- THÊM MẢNG ÂM THANH BƯỚC CHÂN ---
+    [Header("footsteps")]
+    [SerializeField] private AudioClip[] footstepSounds;
+    [SerializeField] private float footstepVolume = 0.4f; // Thường tiếng bước chân phải nhỏ hơn tiếng súng
+
     [Header("settings")]
-    [SerializeField] private float volume = 0.8f;
-    // thay doi cao do ngau nhien de am thanh khong bi robot
+    [SerializeField] private float defaultVolume = 0.8f;
     [SerializeField] private float pitchVariation = 0.15f;
 
     private PlayerController playerController;
@@ -27,37 +29,55 @@ public class PlayerAudioFeedback : MonoBehaviour
 
     void OnEnable()
     {
-        // dang ky y het ben hieu ung hinh anh
         playerController.OnJump += PlayJumpSound;
         playerController.OnLand += PlayLandSound;
         playerController.OnShoot += PlayShootSound;
         playerController.OnTakeDamage += PlayDamageSound;
+
+        playerController.OnFootstep += PlayFootstepSound; // ĐĂNG KÝ EVENT
     }
 
     void OnDisable()
     {
-
         playerController.OnJump -= PlayJumpSound;
         playerController.OnLand -= PlayLandSound;
         playerController.OnShoot -= PlayShootSound;
         playerController.OnTakeDamage -= PlayDamageSound;
+
+        playerController.OnFootstep -= PlayFootstepSound; // HỦY ĐĂNG KÝ
     }
 
-    // ham xu ly chung cho moi loai am thanh
-    private void PlaySound(AudioClip clip)
+    private void PlaySound(AudioClip clip, float volume = -1f)
     {
         if (clip == null) return;
 
-        // random pitch tu 0.85 den 1.15
+        // Tính năng random pitch đã có sẵn ở đây, cực kỳ tự nhiên!
         audioSource.pitch = 1f + Random.Range(-pitchVariation, pitchVariation);
 
-        // dung playoneshot de cac tieng khong bi cat ngang nhau neu ban qua nhanh
-        audioSource.PlayOneShot(clip, volume);
+        float finalVolume = volume < 0 ? defaultVolume : volume;
+        audioSource.PlayOneShot(clip, finalVolume);
     }
 
-    // cac ham goi am thanh cu the
+    // --- HÀM PHÁT TIẾNG BƯỚC CHÂN ---
+    private void PlayFootstepSound()
+    {
+        if (footstepSounds == null || footstepSounds.Length == 0) return;
+
+        // Bốc ngẫu nhiên 1 âm thanh trong mảng
+        AudioClip clip = footstepSounds[Random.Range(0, footstepSounds.Length)];
+        PlaySound(clip, footstepVolume);
+    }
+
     private void PlayJumpSound() => PlaySound(jumpSound);
     private void PlayLandSound() => PlaySound(landSound);
-    private void PlayShootSound() => PlaySound(shootSound);
     private void PlayDamageSound() => PlaySound(damageSound);
+
+    private void PlayShootSound()
+    {
+        WeaponData currentWeapon = playerController.CurrentWeapon;
+        if (currentWeapon != null && currentWeapon.shootSound != null)
+        {
+            PlaySound(currentWeapon.shootSound, currentWeapon.shootVolume);
+        }
+    }
 }

@@ -14,11 +14,15 @@ public class PlayerController : MonoBehaviour
     public event Action<Sprite> OnWeaponSwitched;
     public event Action OnThrowGrenade;
     public event Action OnRoll;
-
+    public event Action OnFootstep; // THÊM DÒNG NÀY
     [Header("auto aim settings")]
     [SerializeField] private float targetRange = 10f;
+    [SerializeField] private float aimHeightOffset = 1f; // THÊM: Biến chỉnh độ cao tâm ngắm
     [SerializeField] private Transform weaponPivot;
     private Transform currentTarget;
+
+    // THÊM: Hàm lấy thông tin khẩu súng hiện tại để truyền cho script Âm thanh
+    public WeaponData CurrentWeapon => (weapons != null && weapons.Length > 0) ? weapons[currentWeaponIndex] : null;
 
     // --- BỘ LỌC VÀ DANH SÁCH TÌM KIẾM TỐI ƯU ---
     private ContactFilter2D enemyFilter;
@@ -28,6 +32,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float moveSpeed = 8f;
     [SerializeField] private float jumpForce = 15f;
     [SerializeField] private float acceleration = 10f;
+
+    [Header("footstep timing")]
+    [SerializeField] private float footstepInterval = 0.35f; // Khoảng cách giữa 2 bước chân
+    private float footstepTimer;
 
     [Header("roll/dodge settings")]
     [SerializeField] private float rollDistance = 6f;
@@ -109,6 +117,7 @@ public class PlayerController : MonoBehaviour
             HandleActionInputs();
         }
 
+        HandleFootsteps(); // THÊM DÒNG NÀY VÀO TRONG UPDATE
         ApplySmartGravity();
     }
 
@@ -166,7 +175,12 @@ public class PlayerController : MonoBehaviour
         if (weaponPivot == null) return;
 
         Vector3 targetDir;
-        if (currentTarget != null) targetDir = (currentTarget.position - weaponPivot.position).normalized;
+        if (currentTarget != null)
+        {
+            // Cộng thêm offset để ngắm vào ngực/đầu quái thay vì ngắm vào chân
+            Vector3 aimPos = currentTarget.position + Vector3.up * aimHeightOffset;
+            targetDir = (aimPos - weaponPivot.position).normalized;
+        }
         else targetDir = Vector3.right * faceDir;
 
         float angle = Mathf.Atan2(targetDir.y, targetDir.x) * Mathf.Rad2Deg;
@@ -297,7 +311,24 @@ public class PlayerController : MonoBehaviour
             }
         }
     }
-
+    private void HandleFootsteps()
+    {
+        // Nếu đang chạm đất, không lộn vòng, và có vận tốc di chuyển đủ lớn
+        if (isGrounded && !isRolling && Mathf.Abs(rb.linearVelocity.x) > 0.5f)
+        {
+            footstepTimer -= Time.deltaTime;
+            if (footstepTimer <= 0)
+            {
+                OnFootstep?.Invoke();
+                footstepTimer = footstepInterval; // Reset lại đồng hồ
+            }
+        }
+        else
+        {
+            // Ép timer về 0 để ngay khi vừa bắt đầu chạy, bước chân đầu tiên sẽ vang lên ngay lập tức
+            footstepTimer = 0f;
+        }
+    }
     private void HandleShooting()
     {
         if (weapons == null || weapons.Length == 0 || shootPoint == null) return;
@@ -315,7 +346,12 @@ public class PlayerController : MonoBehaviour
     private void ExecuteShoot(WeaponData weapon)
     {
         Vector3 shootDirBase;
-        if (currentTarget != null) shootDirBase = (currentTarget.position - shootPoint.position).normalized;
+        if (currentTarget != null)
+        {
+            // Cộng thêm offset tương tự
+            Vector3 aimPos = currentTarget.position + Vector3.up * aimHeightOffset;
+            shootDirBase = (aimPos - shootPoint.position).normalized;
+        }
         else shootDirBase = Vector3.right * faceDir;
 
         float exactAngle = Mathf.Atan2(shootDirBase.y, shootDirBase.x) * Mathf.Rad2Deg;
